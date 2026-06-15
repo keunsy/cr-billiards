@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>台球切角三角形 - 三种对比（30°）</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #eee; font-family: system-ui, sans-serif; padding: 20px; }
+  h1 { text-align: center; font-size: 24px; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #aaa; font-size: 14px; margin-bottom: 20px; }
+  .buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  button { padding: 10px 18px; border-radius: 8px; border: 2px solid transparent; color: #fff; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+  button:hover { opacity: 0.9; }
+  .active-1 { background: #4CAF50; border-color: #8BC34A; font-weight: bold; }
+  .active-2 { background: #FF9800; border-color: #FFC107; font-weight: bold; }
+  .active-3 { background: #9C27B0; border-color: #CE93D8; font-weight: bold; }
+  .inactive { background: #333; border-color: #555; }
+  canvas { display: block; margin: 0 auto; background: #0d1b2a; border-radius: 10px; }
+  .notes { max-width: 700px; margin: 20px auto; background: #16213e; border-radius: 10px; padding: 20px; }
+  .notes h3 { font-size: 17px; margin-bottom: 10px; }
+  .notes ul { line-height: 2; font-size: 14px; color: #ccc; padding-left: 20px; }
+  .notes li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<h1>台球切角三角形 - 三种顶点对比（30° 切角）</h1>
+<p class="subtitle">白球 C 打目标球 O 进袋口 P，切角 ≈ 30°</p>
+
+<div class="buttons">
+  <button id="btn-1" class="active-1" onclick="show(1)">① 目标球中心 O（简化近似）</button>
+  <button id="btn-2" class="inactive" onclick="show(2)">② 接触点 T（折中）</button>
+  <button id="btn-3" class="inactive" onclick="show(3)">③ 假想球中心 G（标准精确）</button>
+</div>
+
+<canvas id="cv" width="900" height="560"></canvas>
+
+<div id="notes" class="notes"></div>
+
+<div class="notes" style="border-left: 4px solid #FF6600;">
+  <h3 style="color:#FF6600">📐 理论说明：切角（Cut Angle）与切割线</h3>
+  <ul>
+    <li><b style="color:#4CAF50">标准切角定义</b>：白球运动方向（C→G）与进球线（O→P）的夹角。<b>G（假想球中心）是唯一精确的顶点</b></li>
+    <li><b>为什么 G 最精确？</b> — 白球必须走到 G 的位置才能把目标球送向袋口，C→G = 白球实际运动方向</li>
+    <li><b>O（目标球中心）= 简化近似</b> — 目标球看得见而假想球看不见，部分教材用 O 代替 G</li>
+    <li><b>T（接触点）= 折中近似</b> — 精度介于 O 和 G 之间</li>
+    <li><b>差异随角度增大而增大</b>（见下表），取决于白球与目标球的距离</li>
+  </ul>
+  <h3 style="color:#FF6600; margin-top:16px;">📊 三种顶点角度差异对比</h3>
+  <p style="color:#999; font-size:12px; margin-bottom:8px;">白球固定在 G 处精确切角位置时，O 和 T 顶点的实际角度：</p>
+  <table style="width:100%; border-collapse:collapse; font-size:13px;">
+    <tr style="background:#1a2744; color:#aaa;">
+      <th style="padding:6px; border:1px solid #333; text-align:center;">标准切角 (G)</th>
+      <th style="padding:6px; border:1px solid #333; text-align:center;">O 角度</th>
+      <th style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">O 偏差</th>
+      <th style="padding:6px; border:1px solid #333; text-align:center;">T 角度</th>
+      <th style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">T 偏差</th>
+    </tr>
+    <tr style="background:#0d1b2a;">
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#4CAF50; font-weight:bold;">30°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center;">27.02°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">-2.98°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center;">28.44°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">-1.56°</td>
+    </tr>
+    <tr style="background:#132238;">
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#4CAF50; font-weight:bold;">45°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center;">40.72°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">-4.28°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center;">42.78°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">-2.22°</td>
+    </tr>
+    <tr style="background:#0d1b2a;">
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#4CAF50; font-weight:bold;">60°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center;">54.65°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">-5.35°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center;">57.25°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">-2.75°</td>
+    </tr>
+    <tr style="background:#132238;">
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#4CAF50; font-weight:bold;">72°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center;">66.01°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">-5.99°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center;">68.94°</td>
+      <td style="padding:6px; border:1px solid #333; text-align:center; color:#FF6600;">-3.06°</td>
+    </tr>
+  </table>
+  <p style="color:#FF6600; font-size:12px; margin-top:8px;">⚠ 结论：O 最大偏差近 6°，T 最大偏差约 3°，角度越大偏差越大。G 始终精确。</p>
+  <h3 style="color:#E91E63; margin-top:16px;">✂️ 切割线（Cut Line）</h3>
+  <ul>
+    <li><b>切割线</b> = 瞄准线（C→G 方向）穿过目标球时，在球面上形成的弦</li>
+    <li>切割线显示了白球"切过"目标球的位置和宽度</li>
+    <li>弦长 / 球直径 = 切割比例 — 1.0 = 正中穿过（全厚），越小越薄</li>
+    <li><b>30° 切角</b>：切割线约在目标球偏心位置，sin 30° = 0.5 → 半球碰撞</li>
+    <li>常见厚薄：0° = 全厚（弦 = 直径）、30° ≈ 半球、45° ≈ 1/4、90° = 擦边（弦→0）</li>
+  </ul>
+  <h3 style="color:#aaa; margin-top:16px;">三角函数关系</h3>
+  <ul>
+    <li><b>sin θ</b> = 对边 / 斜边 — sin 30° = 0.5（半球）</li>
+    <li><b>cos θ</b> = 邻边 / 斜边 — cos 30° ≈ 0.866</li>
+    <li>台球中 <b>sin θ</b> 衡量切球厚薄：sin 0° = 全厚，sin 90° = 极薄</li>
+  </ul>
+  <h3 style="color:#9C27B0; margin-top:16px;">推荐</h3>
+  <ul>
+    <li><b style="color:#9C27B0">App 中应使用 G（假想球中心）</b> — 既精确又与幻影球虚线圆自然配合</li>
+  </ul>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const R = 20;
+
+// 场景布局 — 精确 30° 切角
+const P = {x: 740, y: 90};
+const O = {x: 480, y: 280};
+
+function vSub(a,b){ return {x:a.x-b.x, y:a.y-b.y}; }
+function vAdd(a,b){ return {x:a.x+b.x, y:a.y+b.y}; }
+function vScale(v,s){ return {x:v.x*s, y:v.y*s}; }
+function vLen(v){ return Math.sqrt(v.x*v.x+v.y*v.y); }
+function vNorm(v){ const l=vLen(v); return l>0?{x:v.x/l,y:v.y/l}:{x:0,y:0}; }
+function vDot(a,b){ return a.x*b.x+a.y*b.y; }
+
+const OP = vNorm(vSub(P, O));
+const G = vSub(O, vScale(OP, 2*R));
+const T = vSub(O, vScale(OP, R));
+
+const TARGET_DEG = 30;
+const CUE_DIST = 350;
+
+// 根据顶点和目标角度计算白球位置
+function placeCue(vertex){
+  const vp = vNorm(vSub(P, vertex));
+  const vpAngle = Math.atan2(vp.y, vp.x);
+  const targetRad = Math.PI - TARGET_DEG * Math.PI / 180;
+  const cAngle = vpAngle - targetRad; // sign=-1 keeps cue in bounds
+  const cDir = {x: Math.cos(cAngle), y: Math.sin(cAngle)};
+  return vAdd(vertex, vScale(cDir, CUE_DIST));
+}
+
+function calcAngleAt(vertex){
+  const vToC = vNorm(vSub(C, vertex));
+  const vToP = vNorm(vSub(P, vertex));
+  const d = vDot(vToC, vToP);
+  return 180 - Math.acos(Math.min(1, Math.max(-1, d))) * 180 / Math.PI;
+}
+
+// 各模式白球位置 — 每种模式各自精确 30°
+const cueForO = placeCue(O);
+const cueForT = placeCue(T);
+const cueForG = placeCue(G);
+
+// 当前模式的白球（动态设置）
+let C = cueForG;
+let currentVertex = G;
+
+// 计算 sin θ 对应的厚度描述
+function thicknessDesc(angleDeg){
+  const s = Math.sin(angleDeg * Math.PI / 180);
+  if(s < 0.05) return '全厚（正面碰）';
+  if(s < 0.3) return '3/4 厚';
+  if(s < 0.55) return '1/2 厚（半球）';
+  if(s < 0.8) return '1/4 厚';
+  return '极薄球';
+}
+
+// --- Drawing helpers ---
+function drawCircle(cx, cy, r, fill, stroke, lw){
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  if(fill){ ctx.fillStyle=fill; ctx.fill(); }
+  if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=lw||2; ctx.stroke(); }
+}
+
+function drawLine(x1,y1,x2,y2, color, width, dash){
+  ctx.beginPath();
+  ctx.setLineDash(dash||[]);
+  ctx.strokeStyle=color;
+  ctx.lineWidth=width||2;
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x2,y2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawText(text, x, y, color, size, align, bold){
+  ctx.fillStyle = color;
+  ctx.font = (bold?'bold ':'') + size + 'px system-ui, sans-serif';
+  ctx.textAlign = align || 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+function perpFoot(vertex){
+  const vc = vSub(C, vertex);
+  const proj = vDot(vc, OP);
+  return vAdd(vertex, vScale(OP, proj));
+}
+
+function drawBase(){
+  ctx.clearRect(0, 0, W, H);
+
+  // 袋口
+  drawCircle(P.x, P.y, 26, '#0a0a0a', '#555', 2);
+  drawText('袋口 P', P.x, P.y-36, '#999', 15, 'center', true);
+
+  // 进球线 O→P 延长（虚线）
+  const ext = vAdd(O, vScale(OP, -120));
+  drawLine(ext.x, ext.y, P.x, P.y, '#555', 1.5, [6,4]);
+
+  // 假想球虚线轮廓
+  ctx.beginPath();
+  ctx.arc(G.x, G.y, R, 0, Math.PI*2);
+  ctx.setLineDash([4,3]);
+  ctx.strokeStyle = 'rgba(180,130,255,0.5)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  drawText('假想球 G', G.x, G.y+R+18, 'rgba(180,130,255,0.7)', 13, 'center', false);
+  // G center dot
+  drawCircle(G.x, G.y, 3, 'rgba(180,130,255,0.6)', null);
+
+  // 接触点
+  drawCircle(T.x, T.y, 4, '#FF9800', '#FF9800');
+  drawText('T', T.x+14, T.y-12, '#FF9800', 13, 'center', true);
+
+  // 目标球
+  drawCircle(O.x, O.y, R, '#F9D923', '#fff', 2);
+  drawText('5', O.x, O.y, '#333', 14, 'center', true);
+  drawText('目标球 O', O.x+28, O.y-24, '#F9D923', 14, 'left', true);
+
+  // 白球
+  drawCircle(C.x, C.y, R, '#F5F5F0', '#ddd', 2);
+  drawText('白球 C', C.x, C.y+R+18, '#eee', 14, 'center', false);
+
+  // 瞄准线 C→G（浅绿虚线）
+  drawLine(C.x, C.y, G.x, G.y, 'rgba(102,187,106,0.4)', 1.5, [8,4]);
+}
+
+function drawCutLine(){
+  // 切割线：过接触点 T，垂直于碰撞法线 G→O，在目标球圆上的弦
+  const GO = vNorm(vSub(O, G));
+  const cutDir = {x: -GO.y, y: GO.x};
+
+  const tco = vSub(T, O);
+  const b2 = 2 * vDot(tco, cutDir);
+  const c2 = vDot(tco, tco) - R*R;
+  const disc2 = b2*b2 - 4*c2;
+
+  if(disc2 >= 0){
+    const sqrtD = Math.sqrt(Math.max(0, disc2));
+    const s1 = (-b2 - sqrtD) / 2;
+    const s2 = (-b2 + sqrtD) / 2;
+    const cut1 = vAdd(T, vScale(cutDir, s1));
+    const cut2 = vAdd(T, vScale(cutDir, s2));
+
+    // 弦
+    drawLine(cut1.x, cut1.y, cut2.x, cut2.y, '#E91E63', 3);
+
+    // 延伸虚线
+    drawLine(cut1.x-cutDir.x*25, cut1.y-cutDir.y*25, cut1.x, cut1.y, 'rgba(233,30,99,0.3)', 1.5, [4,3]);
+    drawLine(cut2.x, cut2.y, cut2.x+cutDir.x*25, cut2.y+cutDir.y*25, 'rgba(233,30,99,0.3)', 1.5, [4,3]);
+
+    // 端点
+    drawCircle(cut1.x, cut1.y, 4, '#E91E63', '#fff', 1);
+    drawCircle(cut2.x, cut2.y, 4, '#E91E63', '#fff', 1);
+
+    // 弦长
+    const chordLen = Math.sqrt((cut2.x-cut1.x)**2 + (cut2.y-cut1.y)**2);
+    const chordMid = {x:(cut1.x+cut2.x)/2, y:(cut1.y+cut2.y)/2};
+
+    // 标注
+    drawText('切割线', chordMid.x+GO.x*22, chordMid.y+GO.y*22, '#E91E63', 13, 'center', true);
+
+    // 切割比例
+    const cutRatio = (chordLen / (2*R)).toFixed(2);
+    drawText(cutRatio+' 球径', chordMid.x+GO.x*38, chordMid.y+GO.y*38, 'rgba(233,30,99,0.7)', 12, 'center', true);
+
+    // 厚薄标注
+    drawText('厚', vAdd(T, vScale(GO, R*1.5)).x, vAdd(T, vScale(GO, R*1.5)).y, 'rgba(233,30,99,0.5)', 11, 'center', true);
+    drawText('薄', vSub(T, vScale(GO, R*0.8)).x, vSub(T, vScale(GO, R*0.8)).y, 'rgba(233,30,99,0.5)', 11, 'center', true);
+  }
+
+  // 瞄准线延伸（从白球方向穿过顶点）
+  const curAim = vNorm(vSub(currentVertex, C));
+  const aimExt = vAdd(currentVertex, vScale(curAim, 80));
+  drawLine(currentVertex.x, currentVertex.y, aimExt.x, aimExt.y, 'rgba(102,187,106,0.3)', 1.5, [4,3]);
+
+  // 标注碰撞厚度
+  const sinVal = Math.sin(TARGET_DEG * Math.PI / 180);
+  drawText('sin '+TARGET_DEG+'° = '+sinVal.toFixed(2)+' → '+thicknessDesc(TARGET_DEG),
+    W/2, H-14, '#E91E63', 14, 'center', true);
+}
+
+function drawTriangleForVertex(vertex, vertexColor, vertexName, modeName){
+  const thisAngle = calcAngleAt(vertex);
+  const D = perpFoot(vertex);
+
+  const adjLen = vLen(vSub(D, vertex));
+  const oppLen = vLen(vSub(C, D));
+  const hypLen = vLen(vSub(C, vertex));
+
+  // 三条边
+  drawLine(vertex.x, vertex.y, D.x, D.y, '#FFEB3B', 3);
+  drawLine(D.x, D.y, C.x, C.y, '#00BFFF', 3);
+  drawLine(vertex.x, vertex.y, C.x, C.y, '#66BB6A', 3);
+
+  // 直角标记 at D
+  const sq = 14;
+  const dToV = vNorm(vSub(vertex, D));
+  const dToC = vNorm(vSub(C, D));
+  ctx.beginPath();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+  const s1 = vAdd(D, vScale(dToV, sq));
+  const s2 = vAdd(vAdd(D, vScale(dToV, sq)), vScale(dToC, sq));
+  const s3 = vAdd(D, vScale(dToC, sq));
+  ctx.moveTo(s1.x, s1.y);
+  ctx.lineTo(s2.x, s2.y);
+  ctx.lineTo(s3.x, s3.y);
+  ctx.stroke();
+
+  // 垂足
+  drawCircle(D.x, D.y, 5, '#fff', null);
+  drawText('垂足 D (90°)', D.x+12, D.y-16, '#fff', 14, 'left', true);
+
+  // 顶点高亮
+  drawCircle(vertex.x, vertex.y, 7, vertexColor, '#fff', 1.5);
+  drawText('▼ ' + vertexName, vertex.x, vertex.y-28, vertexColor, 15, 'center', true);
+
+  // 比值
+  const base = oppLen > 0.1 ? oppLen : 1;
+  const adjR = (adjLen/base).toFixed(2);
+  const hypR = (hypLen/base).toFixed(2);
+
+  // 边中点标注 — 偏移到线外侧
+  const midAdj = {x:(vertex.x+D.x)/2, y:(vertex.y+D.y)/2};
+  const adjPerp = {x:-OP.y, y:OP.x};
+  drawText('邻边 ×'+adjR, midAdj.x+adjPerp.x*24, midAdj.y+adjPerp.y*24, '#FFEB3B', 15, 'center', true);
+
+  const midOpp = {x:(D.x+C.x)/2, y:(D.y+C.y)/2};
+  const oppDir = vNorm(vSub(C, D));
+  const oppPerp = {x:-oppDir.y, y:oppDir.x};
+  drawText('对边 ×1.00', midOpp.x+oppPerp.x*28, midOpp.y+oppPerp.y*28, '#00BFFF', 15, 'center', true);
+
+  const midHyp = {x:(vertex.x+C.x)/2, y:(vertex.y+C.y)/2};
+  const hypDir = vNorm(vSub(C, vertex));
+  const hypPerp = {x:-hypDir.y, y:hypDir.x};
+  drawText('斜边 ×'+hypR, midHyp.x-hypPerp.x*22, midHyp.y-hypPerp.y*22, '#66BB6A', 15, 'center', true);
+
+  // 角度弧线
+  const startAng = Math.atan2(D.y-vertex.y, D.x-vertex.x);
+  const endAng = Math.atan2(C.y-vertex.y, C.x-vertex.x);
+  let sweep = endAng - startAng;
+  if(sweep > Math.PI) sweep -= 2*Math.PI;
+  if(sweep < -Math.PI) sweep += 2*Math.PI;
+
+  const arcR = 50;
+  ctx.beginPath();
+  ctx.arc(vertex.x, vertex.y, arcR, startAng, startAng+sweep, sweep<0);
+  ctx.strokeStyle = '#FF6600'; ctx.lineWidth = 3; ctx.stroke();
+
+  // 角度大字
+  const midAng = startAng + sweep/2;
+  const tx = vertex.x + arcR*2*Math.cos(midAng);
+  const ty = vertex.y + arcR*2*Math.sin(midAng);
+  drawText('θ = '+thisAngle.toFixed(2)+'°', tx, ty, '#FF6600', 26, 'center', true);
+
+  // 底部信息：该顶点实际角度
+  drawText(modeName+' θ = '+thisAngle.toFixed(2)+'°（目标30°）', W/2, H-36, '#aaa', 13, 'center', true);
+}
+
+const notesData = {
+  1: {
+    title: '① 目标球中心 O — θ = 30°（简化近似）',
+    items: [
+      '<b style="color:#FFEB3B">邻边（黄）</b>：O → 垂足 D，沿进球线方向',
+      '<b style="color:#00BFFF">对边（蓝）</b>：垂足 D → 白球 C，垂直于进球线',
+      '<b style="color:#66BB6A">斜边（绿）</b>：O → 白球 C',
+      '<b style="color:#E91E63">切割线（粉）</b>：过接触点 T、垂直于碰撞法线 G→O 的弦',
+      '<b>定位</b>：简化版 — 目标球看得见，部分教材用 O 代替 G',
+      '注意：相同 30° 下，白球位置与 G 模式略有不同',
+    ]
+  },
+  2: {
+    title: '② 接触点 T — θ = 30°（折中）',
+    items: [
+      '<b style="color:#FFEB3B">邻边（黄）</b>：T → 垂足 D，沿进球线方向',
+      '<b style="color:#00BFFF">对边（蓝）</b>：垂足 D → 白球 C',
+      '<b style="color:#66BB6A">斜边（绿）</b>：T → 白球 C',
+      '<b style="color:#E91E63">切割线（粉）</b>：过接触点 T、垂直于 G→O 的弦',
+      '<b>定位</b>：碰撞视角，T 在球表面',
+      '注意：T 模式 30° 的白球位置也略不同',
+    ]
+  },
+  3: {
+    title: '③ 假想球中心 G — θ = 30° ✅ 标准切角',
+    items: [
+      '<b style="color:#FFEB3B">邻边（黄）</b>：G → 垂足 D，沿进球线方向',
+      '<b style="color:#00BFFF">对边（蓝）</b>：垂足 D → 白球 C',
+      '<b style="color:#66BB6A">斜边（绿）</b>：G → 白球 C = 瞄准线（白球实际运动路径）',
+      '<b style="color:#E91E63">切割线（粉）</b>：过接触点 T、垂直于碰撞法线的弦',
+      '<b style="color:#4CAF50">✅ 标准切角</b>：C→G = 白球运动方向，这是物理上最精确的定义',
+      '<b>实战</b>：G = 白球要到的位置，斜边 = 瞄准线',
+      'sin 30° = 0.5 → <b>半球碰撞</b>，切割线在目标球边缘',
+    ]
+  }
+};
+
+function show(mode){
+  // 设置当前模式的白球位置
+  if(mode===1){ C = cueForO; currentVertex = O; }
+  if(mode===2){ C = cueForT; currentVertex = T; }
+  if(mode===3){ C = cueForG; currentVertex = G; }
+
+  drawBase();
+  drawCutLine();
+  if(mode===1) drawTriangleForVertex(O, '#4CAF50', '目标球中心 O', '目标球O');
+  if(mode===2) drawTriangleForVertex(T, '#FF9800', '接触点 T', '接触点T');
+  if(mode===3) drawTriangleForVertex(G, '#9C27B0', '假想球中心 G', '假想球G');
+
+  document.getElementById('btn-1').className = mode===1?'active-1':'inactive';
+  document.getElementById('btn-2').className = mode===2?'active-2':'inactive';
+  document.getElementById('btn-3').className = mode===3?'active-3':'inactive';
+
+  const d = notesData[mode];
+  document.getElementById('notes').innerHTML =
+    '<h3>'+d.title+'</h3><ul>'+d.items.map(i=>'<li>'+i+'</li>').join('')+'</ul>';
+}
+
+show(3);
+</script>
+</body>
+</html>
