@@ -19,6 +19,8 @@ class Guideline extends Component {
   bool showTriangle = true;
   Vector2? cueBallPosition;
   Vector2 aimDirection = Vector2(1, 0);
+  Vector2 spinOffset = Vector2.zero();
+  double power = 0.5;
 
   @override
   void render(Canvas canvas) {
@@ -72,12 +74,17 @@ class Guideline extends Component {
 
     if (showAngle && cutAngle > 0.5) {
       _drawAngleArc(canvas, ghostCenter, dir, centerLine, cutAngle, cutColor);
-      _drawAngleLabel(canvas, ghostCenter, cutAngle, cutColor);
     }
 
-    // --- 5b. Right triangle: cue ball perpendicular to object-pocket line ---
+    // --- 5b. Right triangle from contact point T ---
     if (showTriangle && cutAngle > 3.0 && cutAngle < 85.0) {
-      _drawPocketTriangle(canvas, origin, objectCenter);
+      final contactPoint = (objectCenter + ghostCenter) * 0.5;
+      _drawPocketTriangle(canvas, origin, objectCenter, ghostCenter, contactPoint, objectDir);
+    }
+
+    // --- 5c. Cut-point mark on object ball (standard G-vertex cut angle) ---
+    if (cutAngle > 1.0) {
+      _drawCutMark(canvas, objectCenter, ghostCenter);
     }
 
     // --- 6. Cue ball deflection path after impact ---
@@ -140,11 +147,31 @@ class Guideline extends Component {
   }
 
   Vector2? _cueBallDeflection(Vector2 aimDir, Vector2 centerLine) {
+    // Base: 90-degree tangent rule (stun/center hit, pure sliding collision)
     final tangent = Vector2(-centerLine.y, centerLine.x);
     if (aimDir.dot(tangent) < 0) {
       tangent.negate();
     }
-    return tangent.normalized();
+    final tangentDir = tangent.normalized();
+
+    // Topspin (high, spinOffset.y < 0): cue ball follows → mix toward aimDir
+    // Backspin (low, spinOffset.y > 0): cue ball draws back → mix toward -aimDir
+    // The vertical spin component bends the deflection angle.
+    //   followFactor > 0 → follow, < 0 → draw back
+    final followFactor = -spinOffset.y;
+
+    // Power moderates the effect: higher power → less spin influence on angle
+    // (ball leaves faster, less time for spin to grip cloth)
+    final powerDamping = 1.0 - power.clamp(0.0, 1.0) * 0.4;
+
+    // Blend: 0 = pure tangent, positive = toward aim, negative = toward -aim
+    final blendAmount = (followFactor * 0.5 * powerDamping).clamp(-0.8, 0.8);
+    final spinDir = blendAmount >= 0
+        ? aimDir.normalized()
+        : (aimDir.normalized()..negate());
+
+    final result = tangentDir + spinDir * blendAmount.abs();
+    return result.length > 0.001 ? result.normalized() : tangentDir;
   }
 
   void _drawCutPoint(Canvas canvas, Vector2 point) {
@@ -171,8 +198,14 @@ class Guideline extends Component {
     if (sweep > math.pi) sweep -= 2 * math.pi;
     if (sweep < -math.pi) sweep += 2 * math.pi;
 
+    // Pick the shorter arc (the actual cut angle side)
+    if (sweep.abs() > math.pi) {
+      sweep = sweep > 0 ? sweep - 2 * math.pi : sweep + 2 * math.pi;
+    }
+
+    const arcR = 6.0;
     canvas.drawArc(
-      Rect.fromCircle(center: Offset(center.x, center.y), radius: 6),
+      Rect.fromCircle(center: Offset(center.x, center.y), radius: arcR),
       angle1,
       sweep,
       false,
@@ -181,9 +214,16 @@ class Guideline extends Component {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.3,
     );
+
+    // Label at mid-angle of the arc
+    final midAngle = angle1 + sweep / 2;
+    final labelR = arcR + 4.0;
+    final lx = center.x + math.cos(midAngle) * labelR;
+    final ly = center.y + math.sin(midAngle) * labelR;
+    _drawAngleLabel(canvas, Vector2(lx, ly), angleDeg, color);
   }
 
-  void _drawAngleLabel(Canvas canvas, Vector2 near, double angle, Color color) {
+  void _drawAngleLabel(Canvas canvas, Vector2 pos, double angle, Color color) {
     final label = '${angle.round()}°';
     final textPainter = TextPainter(
       text: TextSpan(
@@ -196,7 +236,7 @@ class Guideline extends Component {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    textPainter.paint(canvas, Offset(near.x + 3, near.y - 5));
+    textPainter.paint(canvas, Offset(pos.x - textPainter.width / 2, pos.y - textPainter.height / 2));
   }
 
   void _drawDeflectionLabel(Canvas canvas, Vector2 pos, double angle) {
@@ -257,94 +297,118 @@ class Guideline extends Component {
     }
   }
 
-  /// Draw a right triangle from the cue ball perpendicular to the
-  /// object-ball→pocket line. This shows the geometric relationship
-  /// for aiming: the player adjusts the "short side" (perpendicular offset)
-  /// to pocket the ball.
+  /// Right triangle with vertex at contact point T (midpoint of G-O).
   ///
-  /// A = object ball, B = nearest pocket, C = cue ball
-  /// D = foot of perpendicular from C onto line AB
-  /// Triangle: A-D-C with right angle at D.
-  void _drawPocketTriangle(Canvas canvas, Vector2 cueBall, Vector2 objectBall) {
-    // Find nearest pocket to object ball along its projected path
-    Vector2? bestPocket;
-    var bestDist = double.infinity;
-    for (final p in TableConstants.pocketCenters) {
-      final d = (objectBall - p).length;
-      if (d < bestDist) {
-        bestDist = d;
-        bestPocket = p;
-      }
-    }
-    if (bestPocket == null) return;
+  /// T = contact point, D = foot of perpendicular from C onto the pocket line
+  /// through T, C = cue ball.
+  /// Triangle: T-D-C with right angle at D.
+  void _drawPocketTriangle(Canvas canvas, Vector2 cueBall, Vector2 objectBall,
+      Vector2 ghostCenter, Vector2 contactPoint, Vector2 objectDir) {
+    final lineUnit = objectDir;
 
-    // Line direction: object ball → pocket
-    final lineDir = (bestPocket - objectBall);
-    final lineLen = lineDir.length;
-    if (lineLen < 1.0) return;
-    final lineUnit = lineDir / lineLen;
+    // Project cueBall onto pocket line passing through contact point T
+    final tc = cueBall - contactPoint;
+    final projLen = tc.dot(lineUnit);
+    final foot = contactPoint + lineUnit * projLen;
 
-    // Project cueBall onto line (object → pocket)
-    final ac = cueBall - objectBall;
-    final projLen = ac.dot(lineUnit);
-    final foot = objectBall + lineUnit * projLen; // D: perpendicular foot
-
-    // Perpendicular distance (short side)
     final perpDist = (cueBall - foot).length;
-    if (perpDist < 0.5) return; // too small to draw
+    if (perpDist < 0.5) return;
 
-    // Triangle: A(objectBall) → D(foot) → C(cueBall)
     final triPaint = Paint()
       ..color = const Color(0x44FFFFFF)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.3;
 
-    // AD: along object→pocket line (long side)
+    // T→D: adjacent side (along pocket line)
     canvas.drawLine(
-      Offset(objectBall.x, objectBall.y),
+      Offset(contactPoint.x, contactPoint.y),
       Offset(foot.x, foot.y),
       triPaint,
     );
-    // DC: perpendicular (short side)
+    // D→C: opposite side (perpendicular)
     canvas.drawLine(
       Offset(foot.x, foot.y),
       Offset(cueBall.x, cueBall.y),
       triPaint,
     );
-    // AC: hypotenuse (cue ball → object ball)
+    // T→C: hypotenuse
     canvas.drawLine(
-      Offset(objectBall.x, objectBall.y),
+      Offset(contactPoint.x, contactPoint.y),
       Offset(cueBall.x, cueBall.y),
       triPaint,
     );
 
     // Right angle marker at D
     if (perpDist > 2.0 && projLen.abs() > 2.0) {
-      final dToA = (objectBall - foot).normalized() * 1.5;
+      final dToT = (contactPoint - foot).normalized() * 1.5;
       final dToC = (cueBall - foot).normalized() * 1.5;
-      final sq1 = foot + dToA;
-      final sq2 = foot + dToA + dToC;
+      final sq1 = foot + dToT;
+      final sq2 = foot + dToT + dToC;
       final sq3 = foot + dToC;
       canvas.drawLine(Offset(sq1.x, sq1.y), Offset(sq2.x, sq2.y), triPaint);
       canvas.drawLine(Offset(sq2.x, sq2.y), Offset(sq3.x, sq3.y), triPaint);
     }
 
-    // Ratios relative to short side (perpendicular)
-    final adjLen = projLen.abs(); // AD length
-    final hypLen = ac.length;     // AC length
+    // Contact-point marker
+    canvas.drawCircle(
+      Offset(contactPoint.x, contactPoint.y),
+      0.5,
+      Paint()..color = const Color(0xFFFF9800),
+    );
+
+    final adjLen = projLen.abs();
+    final hypLen = tc.length;
     if (perpDist < 0.1) return;
 
     final hypRatio = hypLen / perpDist;
     final adjRatio = adjLen / perpDist;
 
-    // Labels at midpoints
-    final midAdj = (objectBall + foot) * 0.5;
+    final midAdj = (contactPoint + foot) * 0.5;
     final midPerp = (foot + cueBall) * 0.5;
-    final midHyp = (objectBall + cueBall) * 0.5;
+    final midHyp = (contactPoint + cueBall) * 0.5;
 
     _drawTriLabel(canvas, midAdj, '长${adjRatio.toStringAsFixed(1)}', const Color(0xBBFFEB3B));
     _drawTriLabel(canvas, midPerp, '短1.0', const Color(0xBB00BFFF));
     _drawTriLabel(canvas, midHyp, '斜${hypRatio.toStringAsFixed(1)}', const Color(0xBB66BB6A));
+  }
+
+  /// Draw the "cut mark" on the target ball surface.
+  /// The cut mark is where the aim line (from cue ball through ghost center G)
+  /// intersects the object ball's circumference — i.e. the chord endpoints
+  /// perpendicular to G→O through the contact point T.
+  void _drawCutMark(Canvas canvas, Vector2 objectCenter, Vector2 ghostCenter) {
+    final goDir = (objectCenter - ghostCenter);
+    if (goDir.length < 0.001) return;
+    final goUnit = goDir.normalized();
+    // Perpendicular to G→O
+    final perpUnit = Vector2(-goUnit.y, goUnit.x);
+
+    final contactPoint = (objectCenter + ghostCenter) * 0.5;
+    final r = TableConstants.ballRadius;
+
+    // Find chord endpoints: line through T perpendicular to G→O intersected with ball circle
+    final tc = contactPoint - objectCenter;
+    final b = 2 * tc.dot(perpUnit);
+    final c = tc.dot(tc) - r * r;
+    final disc = b * b - 4 * c;
+    if (disc < 0) return;
+
+    final sqrtD = math.sqrt(disc);
+    final s1 = (-b - sqrtD) / 2;
+    final s2 = (-b + sqrtD) / 2;
+    final p1 = contactPoint + perpUnit * s1;
+    final p2 = contactPoint + perpUnit * s2;
+
+    // Draw cut chord on ball
+    final cutPaint = Paint()
+      ..color = const Color(0xFFE91E63)
+      ..strokeWidth = 0.4;
+    canvas.drawLine(Offset(p1.x, p1.y), Offset(p2.x, p2.y), cutPaint);
+
+    // Highlight chord endpoints
+    final dotPaint = Paint()..color = const Color(0xFFE91E63);
+    canvas.drawCircle(Offset(p1.x, p1.y), 0.35, dotPaint);
+    canvas.drawCircle(Offset(p2.x, p2.y), 0.35, dotPaint);
   }
 
   void _drawTriLabel(Canvas canvas, Vector2 pos, String text, Color color) {

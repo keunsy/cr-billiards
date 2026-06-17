@@ -3,9 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../game/billiards_game.dart';
 import 'game_screen.dart';
-import 'rules_page.dart';
 import 'settings_page.dart';
-import 'billiard_guide_page.dart';
 import 'theory_lab_page.dart';
 import 'tutorial_page.dart';
 
@@ -94,18 +92,10 @@ class MainMenu extends StatelessWidget {
                   onPressed: () => _startGame(context, GameMode.practice),
                 ),
                 _LandscapeMenuButton(
-                  label: '操作教程',
+                  label: '桌球教程',
                   icon: Icons.school_outlined,
                   onPressed: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const TutorialPage())),
-                ),
-                _LandscapeMenuButton(
-                  label: '桌球教程',
-                  icon: Icons.auto_stories_outlined,
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const BilliardGuidePage())),
                 ),
                 _LandscapeMenuButton(
                   label: '理论实验室',
@@ -114,12 +104,6 @@ class MainMenu extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                           builder: (_) => const TheoryLabPage())),
-                ),
-                _LandscapeMenuButton(
-                  label: '规则说明',
-                  icon: Icons.menu_book_outlined,
-                  onPressed: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const RulesPage())),
                 ),
                 _LandscapeMenuButton(
                   label: '设置',
@@ -179,17 +163,10 @@ class MainMenu extends StatelessWidget {
       ),
       const SizedBox(height: 10),
       _MenuButton(
-        label: '操作教程',
+        label: '桌球教程',
         icon: Icons.school_outlined,
         onPressed: () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const TutorialPage())),
-      ),
-      const SizedBox(height: 10),
-      _MenuButton(
-        label: '桌球教程',
-        icon: Icons.auto_stories_outlined,
-        onPressed: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const BilliardGuidePage())),
       ),
       const SizedBox(height: 10),
       _MenuButton(
@@ -197,13 +174,6 @@ class MainMenu extends StatelessWidget {
         icon: Icons.science_outlined,
         onPressed: () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => const TheoryLabPage())),
-      ),
-      const SizedBox(height: 10),
-      _MenuButton(
-        label: '规则说明',
-        icon: Icons.menu_book_outlined,
-        onPressed: () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const RulesPage())),
       ),
       const SizedBox(height: 10),
       _MenuButton(

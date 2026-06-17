@@ -56,30 +56,28 @@ class Table extends Component {
   }
 
   void _addCornerAngles(double cx, double cy, double sx, double sy) {
-    const len = 4.0;
-    const inset = 3.5;
-    // Short angled lip along the horizontal rail near the corner
+    const len = 3.5;
+    const inset = 4.5;
     world.add(CushionSegment(
       start: Vector2(cx + sx * inset, cy),
-      end: Vector2(cx + sx * (inset + len), cy + sy * len * 0.5),
+      end: Vector2(cx + sx * (inset + len), cy + sy * len * 0.35),
     ));
-    // Short angled lip along the vertical rail near the corner
     world.add(CushionSegment(
       start: Vector2(cx, cy + sy * inset),
-      end: Vector2(cx + sx * len * 0.5, cy + sy * (inset + len)),
+      end: Vector2(cx + sx * len * 0.35, cy + sy * (inset + len)),
     ));
   }
 
   void _addSidePocketAngles(double y, double sy) {
-    const len = 3.5;
-    const inset = 3.5;
+    const len = 3.0;
+    const inset = 4.0;
     world.add(CushionSegment(
       start: Vector2(-inset, y),
-      end: Vector2(-(inset + len), y + sy * len * 0.4),
+      end: Vector2(-(inset + len), y + sy * len * 0.3),
     ));
     world.add(CushionSegment(
       start: Vector2(inset, y),
-      end: Vector2(inset + len, y + sy * len * 0.4),
+      end: Vector2(inset + len, y + sy * len * 0.3),
     ));
   }
 

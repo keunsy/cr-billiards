@@ -23,7 +23,9 @@ class _SpinIndicatorState extends State<SpinIndicator>
   @override
   void initState() {
     super.initState();
-    _hitPoint = Offset(widget.game.spinOffset.x, widget.game.spinOffset.y);
+    const ballR = 44.0;
+    final so = widget.game.spinOffset;
+    _hitPoint = Offset(so.x * ballR, so.y * ballR);
     widget.game.spinNotifier.addListener(_syncFromGame);
 
     _animController = AnimationController(
@@ -43,7 +45,9 @@ class _SpinIndicatorState extends State<SpinIndicator>
   void _syncFromGame() {
     if (mounted) {
       setState(() {
-        _hitPoint = Offset(widget.game.spinOffset.x, widget.game.spinOffset.y);
+        const ballR = 44.0;
+        final so = widget.game.spinOffset;
+        _hitPoint = Offset(so.x * ballR, so.y * ballR);
       });
     }
   }
@@ -58,12 +62,13 @@ class _SpinIndicatorState extends State<SpinIndicator>
   }
 
   void _onPan(Offset local) {
-    const radius = 36.0;
-    final center = const Offset(radius + 4, radius + 4);
+    const padSize = 100.0;
+    const ballR = 44.0;
+    const center = Offset(padSize / 2, padSize / 2);
     final delta = local - center;
-    final clamped = _clampToCircle(delta, radius - 6);
+    final clamped = _clampToCircle(delta, ballR - 4);
     setState(() => _hitPoint = clamped);
-    widget.game.setSpinOffset(Vector2(clamped.dx, clamped.dy) / radius);
+    widget.game.setSpinOffset(Vector2(clamped.dx, clamped.dy) / ballR);
   }
 
   void _resetSpin() {
@@ -117,12 +122,12 @@ class _SpinIndicatorState extends State<SpinIndicator>
   }
 
   Widget _buildExpandedPanel() {
-    const size = 80.0;
-    const ballR = 36.0;
+    const padSize = 100.0;
+    const ballR = 44.0;
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(12),
@@ -133,23 +138,31 @@ class _SpinIndicatorState extends State<SpinIndicator>
         children: [
           const Text(
             '加塞',
-            style: TextStyle(color: Colors.white70, fontSize: 11),
+            style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onPanDown: (d) => _onPan(d.localPosition),
-            onPanUpdate: (d) => _onPan(d.localPosition),
-            child: CustomPaint(
-              size: const Size(size, size),
-              painter: _SpinPainter(hitPoint: _hitPoint, ballRadius: ballR),
+          const SizedBox(height: 6),
+          Listener(
+            onPointerDown: (_) {},
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanStart: (d) => _onPan(d.localPosition),
+              onPanDown: (d) => _onPan(d.localPosition),
+              onPanUpdate: (d) => _onPan(d.localPosition),
+              child: SizedBox(
+                width: padSize,
+                height: padSize,
+                child: CustomPaint(
+                  painter: _SpinPainter(hitPoint: _hitPoint, ballRadius: ballR),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           GestureDetector(
             onTap: _resetSpin,
             child: const Text(
               '重置',
-              style: TextStyle(color: Colors.white54, fontSize: 10),
+              style: TextStyle(color: Colors.white54, fontSize: 11),
             ),
           ),
         ],
@@ -175,7 +188,7 @@ class _MiniSpinPainter extends CustomPainter {
     );
 
     if (hitPoint.distance > 0.5) {
-      final scale = r / 36.0;
+      final scale = r / 44.0;
       final dot = center + hitPoint * scale;
       canvas.drawCircle(dot, 2.5, Paint()..color = Colors.red);
     }

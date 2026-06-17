@@ -62,12 +62,16 @@ class Ball extends BodyComponent with ContactCallbacks {
     final bodyDef = BodyDef()
       ..type = BodyType.dynamic
       ..position = _initialPosition
-      ..linearDamping = 0.4
-      ..angularDamping = 0.3
+      ..linearDamping = 0.85
+      ..angularDamping = 0.6
       ..bullet = true;
 
     return world.createBody(bodyDef)..createFixture(fixtureDef);
   }
+
+  bool _pendingDeactivation = false;
+  double _travelPhase = 0; // accumulated rolling phase in radians
+  Vector2 _lastPos = Vector2.zero();
 
   void pocket() {
     isPocketed = true;
@@ -76,10 +80,39 @@ class Ball extends BodyComponent with ContactCallbacks {
     body.setTransform(Vector2(-1000, -1000), 0);
     body.linearVelocity = Vector2.zero();
     body.angularVelocity = 0;
-    body.setActive(false);
+    // Defer body deactivation to avoid mutating the world during collision iteration
+    _pendingDeactivation = true;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_pendingDeactivation) {
+      _pendingDeactivation = false;
+      body.setActive(false);
+    }
+    if (body.isActive && !isPocketed) {
+      // Force-stop very slow balls to avoid long tail-end drifting
+      final speed = body.linearVelocity.length;
+      if (speed > 0 && speed < 0.25) {
+        body.linearVelocity = Vector2.zero();
+        body.angularVelocity = 0;
+      } else if (body.angularVelocity.abs() > 0 && body.angularVelocity.abs() < 0.2) {
+        body.angularVelocity = 0;
+      }
+
+      // Accumulate rolling phase based on distance traveled
+      final pos = body.position;
+      final dist = (pos - _lastPos).length;
+      if (dist > 0.01) {
+        _travelPhase += dist / TableConstants.ballRadius;
+      }
+      _lastPos.setFrom(pos);
+    }
   }
 
   void restoreForPlacement(Vector2 position) {
+    _pendingDeactivation = false;
     isPocketed = false;
     isVisible = true;
     body.setActive(true);
@@ -93,6 +126,7 @@ class Ball extends BodyComponent with ContactCallbacks {
   }
 
   void reposition(Vector2 position) {
+    _pendingDeactivation = false;
     isPocketed = false;
     isVisible = true;
     isDragging = false;
@@ -115,7 +149,7 @@ class Ball extends BodyComponent with ContactCallbacks {
 
   bool get isMoving {
     if (isPocketed || !body.isActive) return false;
-    return body.linearVelocity.length > 0.1 || body.angularVelocity.abs() > 0.1;
+    return body.linearVelocity.length > 0.3 || body.angularVelocity.abs() > 0.3;
   }
 
   @override
@@ -126,27 +160,50 @@ class Ball extends BodyComponent with ContactCallbacks {
     const r = TableConstants.ballRadius;
     final alpha = isDragging ? 0.55 : 1.0;
 
-    // Shadow
+    // Ground shadow (soft elliptical)
     canvas.drawOval(
-      Rect.fromCenter(center: const Offset(0.5, 0.8), width: r * 2.1, height: r * 1.6),
-      Paint()..color = const Color(0x44000000),
+      Rect.fromCenter(center: const Offset(0.4, 0.7), width: r * 2.2, height: r * 1.2),
+      Paint()
+        ..shader = RadialGradient(
+          colors: const [Color(0x55000000), Color(0x00000000)],
+        ).createShader(
+          Rect.fromCenter(center: const Offset(0.4, 0.7), width: r * 2.2, height: r * 1.2),
+        ),
     );
 
-    // Rotate canvas by body angle to simulate rolling
-    canvas.save();
-    canvas.rotate(body.angle);
-
+    // Draw ball body (no rotation — gradient stays fixed for 3D look)
     if (isStripe) {
       _renderStripe(canvas, center, r, alpha);
     } else {
       _renderSolid(canvas, center, r, alpha);
     }
 
+    // Number circle with rolling effect: offset along travel direction
     if (number > 0) {
-      _renderNumber(canvas, center, r);
+      canvas.save();
+      final vel = body.linearVelocity;
+      final speed = vel.length;
+      // Use travel direction for offset; fall back to body angle when still
+      double dirAngle;
+      if (speed > 0.3) {
+        dirAngle = math.atan2(vel.y, vel.x);
+      } else {
+        dirAngle = 0;
+      }
+      // sin(_travelPhase) oscillates the number position along travel direction
+      final phase = math.sin(_travelPhase);
+      final offsetMag = r * 0.35 * phase;
+      final numOffset = Offset(math.cos(dirAngle) * offsetMag, math.sin(dirAngle) * offsetMag);
+      // cos(_travelPhase) < 0 means number is on the "back side" — scale down
+      final visibility = math.cos(_travelPhase);
+      if (visibility > -0.3) {
+        final scale = 0.5 + 0.5 * visibility.clamp(0.0, 1.0);
+        canvas.translate(numOffset.dx, numOffset.dy);
+        canvas.scale(scale, scale);
+        _renderNumber(canvas, center, r);
+      }
+      canvas.restore();
     }
-
-    canvas.restore();
 
     // Edge outline (drawn without rotation for cleaner look)
     canvas.drawCircle(
@@ -165,25 +222,26 @@ class Ball extends BodyComponent with ContactCallbacks {
   void _renderSolid(Canvas canvas, Offset center, double r, double alpha) {
     final baseColor = ballColor.withValues(alpha: alpha);
 
-    // Radial gradient for 3D sphere effect
+    // Main body: tighter radial gradient for more 3D pop
     canvas.drawCircle(
       center,
       r,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.35, -0.4),
-          radius: 1.0,
+          center: const Alignment(-0.3, -0.35),
+          radius: 0.85,
           colors: [
-            _lighten(baseColor, 0.35),
+            _lighten(baseColor, 0.45),
+            _lighten(baseColor, 0.15),
             baseColor,
-            _darken(baseColor, 0.35),
+            _darken(baseColor, 0.25),
+            _darken(baseColor, 0.5),
           ],
-          stops: const [0.0, 0.5, 1.0],
+          stops: const [0.0, 0.25, 0.50, 0.78, 1.0],
         ).createShader(Rect.fromCircle(center: center, radius: r)),
     );
 
     if (isCueBall) {
-      // Subtle edge ring for cue ball
       canvas.drawCircle(
         center,
         r,
@@ -198,20 +256,22 @@ class Ball extends BodyComponent with ContactCallbacks {
   void _renderStripe(Canvas canvas, Offset center, double r, double alpha) {
     final baseColor = ballColor.withValues(alpha: alpha);
 
-    // White base with 3D gradient
+    // White base with tighter 3D gradient
     canvas.drawCircle(
       center,
       r,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.35, -0.4),
-          radius: 1.0,
-          colors: [
-            const Color(0xFFFFFFFF),
-            const Color(0xFFF0F0F0),
-            const Color(0xFFD0D0D0),
+          center: const Alignment(-0.3, -0.35),
+          radius: 0.85,
+          colors: const [
+            Color(0xFFFFFFFF),
+            Color(0xFFF5F5F5),
+            Color(0xFFE8E8E8),
+            Color(0xFFCCCCCC),
+            Color(0xFFAAAAAA),
           ],
-          stops: const [0.0, 0.5, 1.0],
+          stops: const [0.0, 0.25, 0.50, 0.78, 1.0],
         ).createShader(Rect.fromCircle(center: center, radius: r)),
     );
 
@@ -223,14 +283,16 @@ class Ball extends BodyComponent with ContactCallbacks {
       r,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.3, -0.3),
-          radius: 1.0,
+          center: const Alignment(-0.3, -0.35),
+          radius: 0.85,
           colors: [
-            _lighten(baseColor, 0.2),
+            _lighten(baseColor, 0.3),
+            _lighten(baseColor, 0.1),
             baseColor,
-            _darken(baseColor, 0.25),
+            _darken(baseColor, 0.2),
+            _darken(baseColor, 0.45),
           ],
-          stops: const [0.0, 0.5, 1.0],
+          stops: const [0.0, 0.25, 0.50, 0.78, 1.0],
         ).createShader(Rect.fromCircle(center: center, radius: r)),
     );
     canvas.restore();
@@ -286,39 +348,41 @@ class Ball extends BodyComponent with ContactCallbacks {
   }
 
   void _renderHighlight(Canvas canvas, double r) {
-    // Primary specular highlight
+    // Primary specular highlight — bigger and brighter
+    final hlCenter = Offset(-r * 0.28, -r * 0.32);
     canvas.drawCircle(
-      Offset(-r * 0.3, -r * 0.3),
-      r * 0.22,
+      hlCenter,
+      r * 0.30,
       Paint()
         ..shader = RadialGradient(
-          colors: [
-            const Color(0x88FFFFFF),
-            const Color(0x00FFFFFF),
-          ],
-        ).createShader(Rect.fromCircle(
-          center: Offset(-r * 0.3, -r * 0.3),
-          radius: r * 0.22,
-        )),
+          colors: const [Color(0xBBFFFFFF), Color(0x00FFFFFF)],
+        ).createShader(Rect.fromCircle(center: hlCenter, radius: r * 0.30)),
+    );
+
+    // Sharp specular dot
+    canvas.drawCircle(
+      Offset(-r * 0.22, -r * 0.25),
+      r * 0.08,
+      Paint()..color = const Color(0xCCFFFFFF),
     );
 
     // Subtle secondary highlight
     canvas.drawCircle(
       Offset(r * 0.15, r * 0.2),
-      r * 0.12,
-      Paint()..color = const Color(0x11FFFFFF),
+      r * 0.10,
+      Paint()..color = const Color(0x15FFFFFF),
     );
 
-    // Rim light at bottom edge
+    // Rim light at bottom edge (environment reflection)
     canvas.drawArc(
-      Rect.fromCircle(center: Offset.zero, radius: r),
-      math.pi * 0.1,
-      math.pi * 0.8,
+      Rect.fromCircle(center: Offset.zero, radius: r * 0.95),
+      math.pi * 0.05,
+      math.pi * 0.9,
       false,
       Paint()
-        ..color = const Color(0x18FFFFFF)
+        ..color = const Color(0x22FFFFFF)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.2,
+        ..strokeWidth = 0.25,
     );
   }
 

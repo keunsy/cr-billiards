@@ -29,6 +29,7 @@ enum GameMode { standard, practice }
 class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
   BilliardsGame({
     this.gameMode = GameMode.standard,
+    this.initialPreset,
     bool enablePracticeMode = false,
   })  : practiceMode = gameMode == GameMode.practice || enablePracticeMode,
         super(
@@ -38,6 +39,7 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
 
   final GameMode gameMode;
   final bool practiceMode;
+  final BallPreset? initialPreset;
 
   GameState state = GameState.aiming;
   final List<Ball> balls = [];
@@ -66,6 +68,9 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
   // Undo support (practice mode only): snapshot of all ball states before each shot
   List<_BallSnapshot>? _undoSnapshot;
   bool get canUndo => practiceMode && _undoSnapshot != null && state == GameState.aiming;
+
+  // Deferred pocket queue to avoid mutating physics world during iteration
+  final List<Ball> _pendingPockets = [];
 
   bool get isPlaceBehindHeadString => _placeBehindHeadString;
 
@@ -127,14 +132,14 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
     _cueStick = CueStick();
     world.add(_cueStick);
 
+    _guideline = Guideline(balls: balls);
+    world.add(_guideline);
+
     if (gameMode == GameMode.standard) {
       _setupStandardBalls();
     } else {
       _setupPracticeBalls();
     }
-
-    _guideline = Guideline(balls: balls);
-    world.add(_guideline);
 
     _aimController = AimController(this);
   }
@@ -190,6 +195,7 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
+    _aimController.reset();
     final savedPos = _longPressWorldPos;
     _longPressTimer?.cancel();
     _longPressTimer = null;
@@ -240,7 +246,48 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
     _guideline.enabled = false;
   }
 
-  void _setupPracticeBalls() => _setupBalls();
+  void _setupPracticeBalls() {
+    if (initialPreset != null) {
+      _setupFromPreset(initialPreset!);
+    } else {
+      _setupBalls();
+    }
+  }
+
+  void loadPreset(BallPreset preset) {
+    _resetTransientState();
+    _setupFromPreset(preset);
+    state = GameState.aiming;
+    _setState(GameState.aiming);
+    _updateAimVisuals();
+  }
+
+  void _resetTransientState() {
+    _undoSnapshot = null;
+    _pendingPockets.clear();
+    _trackingShot = false;
+    _shotGraceTimer = 0;
+    _ballsMovingTimer = 0;
+    _placeBehindHeadString = false;
+  }
+
+  void _setupFromPreset(BallPreset preset) {
+    _clearAllBalls();
+    final cuePos = preset.cueBallPosition;
+    cueBall = Ball(
+      number: 0,
+      position: Vector2(cuePos?.$1 ?? TableConstants.headStringX - 20, cuePos?.$2 ?? 0),
+    );
+    world.add(cueBall!);
+    balls.add(cueBall!);
+
+    for (final (number, x, y) in preset.balls) {
+      final ball = Ball(number: number, position: Vector2(x, y));
+      world.add(ball);
+      balls.add(ball);
+    }
+    _wireShotListeners();
+  }
 
   void _setupBalls() {
     _clearAllBalls();
@@ -413,6 +460,7 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
     rules.reset();
     rulesNotifier.value = GameRules();
     _ballPlacement.cancel();
+    _resetTransientState();
     state = GameState.aiming;
     _setState(GameState.aiming);
     _setupStandardBalls();
@@ -423,7 +471,7 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
     rules.reset();
     rulesNotifier.value = GameRules();
     _ballPlacement.cancel();
-    _undoSnapshot = null;
+    _resetTransientState();
     state = GameState.aiming;
     _setState(GameState.aiming);
     _setupPracticeBalls();
@@ -462,6 +510,8 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
     final settings = GameSettings.instance;
     _guideline.cueBallPosition = pos.clone();
     _guideline.aimDirection = aimDirection.clone();
+    _guideline.spinOffset = spinOffset.clone();
+    _guideline.power = power;
     _guideline.enabled = guidelineEnabled;
     _guideline.showAngle = angleDisplayEnabled;
     _guideline.showObjectPath = settings.objectPathEnabled;
@@ -479,10 +529,10 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
 
     // Distance-based pocket detection — catches balls that the sensor
     // might miss due to physics step ordering or high-speed tunneling.
-    // Also runs during placingBall, because other balls may still be moving
-    // after the cue ball was pocketed.
+    // Deferred: collect candidates first, then process after physics is safe.
     if (state != GameState.aiming) {
       _checkPocketProximity();
+      _processPendingPockets();
     }
 
     if (state == GameState.ballsMoving || (state == GameState.placingBall && _trackingShot)) {
@@ -511,15 +561,47 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
     for (final ball in balls) {
       if (ball.isPocketed || !ball.isVisible) continue;
       final pos = ball.body.position;
+
+      double closestDist = double.infinity;
+      int closestIdx = -1;
       for (var i = 0; i < TableConstants.pocketCenters.length; i++) {
-        final pocketCenter = TableConstants.pocketCenters[i];
-        final dist = (pos - pocketCenter).length;
-        final threshold = TableConstants.pocketRadiusAt(i) * 0.7;
-        if (dist < threshold) {
-          _onBallPocketed(ball);
-          break;
+        final d = (pos - TableConstants.pocketCenters[i]).length;
+        if (d < closestDist) {
+          closestDist = d;
+          closestIdx = i;
         }
       }
+      if (closestIdx < 0) continue;
+
+      final pocketR = TableConstants.pocketRadiusAt(closestIdx);
+      if (closestDist < pocketR * 0.95) {
+        if (!_pendingPockets.contains(ball)) {
+          _pendingPockets.add(ball);
+        }
+        continue;
+      }
+
+      // Gravity well: pull ball toward pocket when in outer zone.
+      // Makes pocketing feel snappy — no lingering at the lip.
+      final pullZone = pocketR * 1.4;
+      final speed = ball.body.linearVelocity.length;
+      if (closestDist < pullZone && speed < 120) {
+        final toCenter = TableConstants.pocketCenters[closestIdx] - pos;
+        if (toCenter.length > 0.01) {
+          toCenter.normalize();
+          final t = 1.0 - closestDist / pullZone;
+          ball.body.applyForce(toCenter * (t * 1200.0));
+        }
+      }
+    }
+  }
+
+  void _processPendingPockets() {
+    if (_pendingPockets.isEmpty) return;
+    final batch = List<Ball>.from(_pendingPockets);
+    _pendingPockets.clear();
+    for (final ball in batch) {
+      _onBallPocketed(ball);
     }
   }
 

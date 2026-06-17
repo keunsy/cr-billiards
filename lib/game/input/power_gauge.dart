@@ -77,12 +77,14 @@ class _PowerGaugeState extends State<PowerGauge> {
 
             // Power bar
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTapDown: (details) {
                 final localY = details.localPosition.dy;
                 final newPower = 1.0 - (localY / barHeight).clamp(0.0, 1.0);
                 _updatePower(newPower);
               },
-              onVerticalDragUpdate: (details) {
+              onPanStart: (_) {},
+              onPanUpdate: (details) {
                 _updatePower(_power - details.delta.dy / (barHeight * 0.5));
               },
               child: Container(
