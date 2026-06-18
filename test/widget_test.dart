@@ -19,16 +19,15 @@ void main() {
     await tester.pumpWidget(const BilliardsApp());
     expect(find.text('标准开局'), findsOneWidget);
     expect(find.text('自由练习'), findsOneWidget);
-    expect(find.text('操作教程'), findsOneWidget);
     expect(find.text('桌球教程'), findsOneWidget);
-    expect(find.text('规则说明'), findsOneWidget);
+    expect(find.text('理论实验室'), findsOneWidget);
     expect(find.text('设置'), findsOneWidget);
   });
 
   test('TableConstants has valid dimensions', () {
     expect(TableConstants.length, 254.0);
     expect(TableConstants.width, 127.0);
-    expect(TableConstants.ballRadius, closeTo(2.8575, 0.001));
+    expect(TableConstants.ballRadius, 3.5);
     expect(TableConstants.maxShotPower, 4500.0);
     expect(TableConstants.pocketCenters.length, 6);
     expect(TableConstants.cushionRestitution, 0.78);

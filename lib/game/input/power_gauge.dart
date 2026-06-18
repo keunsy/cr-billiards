@@ -50,8 +50,8 @@ class _PowerGaugeState extends State<PowerGauge> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxH = constraints.maxHeight;
-        final shootBtnSize = maxH < 300 ? 40.0 : 48.0;
-        final barWidth = maxH < 300 ? 32.0 : 38.0;
+        final shootBtnSize = maxH < 300 ? 34.0 : 48.0;
+        final barWidth = maxH < 300 ? 26.0 : 38.0;
         final barHeight = (maxH - shootBtnSize - 30).clamp(60.0, 300.0);
 
         return Column(

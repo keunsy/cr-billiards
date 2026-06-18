@@ -63,6 +63,7 @@ final List<_TutorialCategory> _categories = [
     icon: Icons.gps_fixed,
     color: const Color(0xFFFFA726),
     items: [
+      _TutorialItem(title: '主视眼与瞄准视线', icon: Icons.visibility, builder: () => const _DominantEyeGuide()),
       _TutorialItem(title: '假想球瞄准法', icon: Icons.blur_circular, builder: () => const _GhostBall()),
       _TutorialItem(title: '切角与厚薄', icon: Icons.change_history, builder: () => const _CutAngle()),
       _TutorialItem(title: '常用进球线路', icon: Icons.route, builder: () => const _PottingLines()),
@@ -794,7 +795,7 @@ class _BridgeHand extends StatelessWidget {
         ]),
         const SizedBox(height: 8),
         SizedBox(
-          height: 140,
+          height: 200,
           width: double.infinity,
           child: CustomPaint(painter: _SpecialBridgePainter()),
         ),
@@ -1086,76 +1087,72 @@ class _SpecialBridgePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     final sectionW = w / 3;
+    final scale = h / 200.0;
+    final br = 10.0 * scale; // ball radius
+    final cw = 4.0 * scale;  // cue width
 
     final tablePaint = Paint()..color = const Color(0xFF1B4332);
     final railPaint = Paint()..color = const Color(0xFF2D6A4F);
     final ballPaint = Paint()..color = Colors.white;
     final cuePaint = Paint()
       ..color = const Color(0xFFFFF8E1)
-      ..strokeWidth = 3
+      ..strokeWidth = cw
       ..strokeCap = StrokeCap.round;
     final handPaint = Paint()..color = const Color(0xFFE8B89D);
+    final fs = (12.0 * scale).clamp(10.0, 14.0);
 
     // Section 1: High bridge
     final s1cx = sectionW / 2;
     canvas.drawRect(Rect.fromLTWH(0, h * 0.5, sectionW - 4, h * 0.5), tablePaint);
-    // Obstacle ball
-    canvas.drawCircle(Offset(s1cx + 10, h * 0.45), 8, Paint()..color = const Color(0xFFD32F2F));
-    // Raised hand (fingertips)
-    canvas.drawCircle(Offset(s1cx - 15, h * 0.35), 6, handPaint);
-    canvas.drawCircle(Offset(s1cx - 25, h * 0.4), 5, handPaint);
-    // Cue over obstacle
-    canvas.drawLine(Offset(s1cx - 50, h * 0.3), Offset(s1cx + 50, h * 0.3), cuePaint);
-    canvas.drawCircle(Offset(s1cx + 50, h * 0.3), 2.5, Paint()..color = const Color(0xFF26C6DA));
-    // Cue ball
-    canvas.drawCircle(Offset(s1cx + 55, h * 0.5), 7, ballPaint);
-    _drawLabel(canvas, '高架杆', Offset(s1cx - 18, h * 0.05), const Color(0xFF26C6DA));
+    canvas.drawCircle(Offset(s1cx + 14 * scale, h * 0.45), br, Paint()..color = const Color(0xFFD32F2F));
+    canvas.drawCircle(Offset(s1cx - 20 * scale, h * 0.35), 8 * scale, handPaint);
+    canvas.drawCircle(Offset(s1cx - 32 * scale, h * 0.4), 7 * scale, handPaint);
+    canvas.drawLine(Offset(s1cx - 60 * scale, h * 0.28), Offset(s1cx + 60 * scale, h * 0.28), cuePaint);
+    canvas.drawCircle(Offset(s1cx + 60 * scale, h * 0.28), 3 * scale, Paint()..color = const Color(0xFF26C6DA));
+    canvas.drawCircle(Offset(s1cx + 66 * scale, h * 0.5), br, ballPaint);
+    _drawLabel(canvas, '高架杆', Offset(s1cx - 18, h * 0.06), const Color(0xFF26C6DA), fs);
 
     // Section 2: Rail bridge
     final s2cx = sectionW + sectionW / 2;
     canvas.drawRect(Rect.fromLTWH(sectionW + 2, h * 0.5, sectionW - 4, h * 0.5), tablePaint);
-    canvas.drawRect(Rect.fromLTWH(sectionW + 2, h * 0.42, sectionW - 4, 12), railPaint);
-    // Hand on rail
+    canvas.drawRect(Rect.fromLTWH(sectionW + 2, h * 0.42, sectionW - 4, 14 * scale), railPaint);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(s2cx, h * 0.38), width: 35, height: 18), const Radius.circular(4)),
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(s2cx, h * 0.36), width: 42 * scale, height: 22 * scale),
+        Radius.circular(5 * scale)),
       handPaint,
     );
-    // Cue along rail
-    canvas.drawLine(Offset(s2cx - 50, h * 0.35), Offset(s2cx + 50, h * 0.35), cuePaint);
-    canvas.drawCircle(Offset(s2cx + 50, h * 0.35), 2.5, Paint()..color = const Color(0xFF26C6DA));
-    canvas.drawCircle(Offset(s2cx + 55, h * 0.5), 7, ballPaint);
-    _drawLabel(canvas, '靠库架杆', Offset(s2cx - 22, h * 0.05), const Color(0xFF26C6DA));
+    canvas.drawLine(Offset(s2cx - 60 * scale, h * 0.33), Offset(s2cx + 60 * scale, h * 0.33), cuePaint);
+    canvas.drawCircle(Offset(s2cx + 60 * scale, h * 0.33), 3 * scale, Paint()..color = const Color(0xFF26C6DA));
+    canvas.drawCircle(Offset(s2cx + 66 * scale, h * 0.5), br, ballPaint);
+    _drawLabel(canvas, '靠库架杆', Offset(s2cx - 26, h * 0.06), const Color(0xFF26C6DA), fs);
 
     // Section 3: Mechanical bridge (spider)
     final s3cx = 2 * sectionW + sectionW / 2;
     canvas.drawRect(Rect.fromLTWH(2 * sectionW + 2, h * 0.5, sectionW - 4, h * 0.5), tablePaint);
-    // Spider tool
     final spiderPaint = Paint()
       ..color = const Color(0xFF9E9E9E)
-      ..strokeWidth = 3;
-    canvas.drawLine(Offset(s3cx - 30, h * 0.5), Offset(s3cx + 20, h * 0.5), spiderPaint);
-    // Spider head
+      ..strokeWidth = 4 * scale;
+    canvas.drawLine(Offset(s3cx - 36 * scale, h * 0.5), Offset(s3cx + 24 * scale, h * 0.5), spiderPaint);
     canvas.drawRect(
-      Rect.fromCenter(center: Offset(s3cx + 20, h * 0.45), width: 20, height: 14),
+      Rect.fromCenter(center: Offset(s3cx + 24 * scale, h * 0.44), width: 26 * scale, height: 18 * scale),
       Paint()..color = const Color(0xFF616161),
     );
-    // Notches on spider
     for (var i = 0; i < 3; i++) {
       canvas.drawRect(
-        Rect.fromLTWH(s3cx + 13 + i * 5.0, h * 0.4, 3, 6),
+        Rect.fromLTWH(s3cx + 15 * scale + i * 7.0 * scale, h * 0.38, 4 * scale, 8 * scale),
         Paint()..color = const Color(0xFF424242),
       );
     }
-    // Cue resting on spider
-    canvas.drawLine(Offset(s3cx - 60, h * 0.38), Offset(s3cx + 60, h * 0.38), cuePaint);
-    canvas.drawCircle(Offset(s3cx + 60, h * 0.38), 2.5, Paint()..color = const Color(0xFF26C6DA));
-    canvas.drawCircle(Offset(s3cx + 65, h * 0.5), 7, ballPaint);
-    _drawLabel(canvas, '架杆器', Offset(s3cx - 18, h * 0.05), const Color(0xFF26C6DA));
+    canvas.drawLine(Offset(s3cx - 70 * scale, h * 0.36), Offset(s3cx + 70 * scale, h * 0.36), cuePaint);
+    canvas.drawCircle(Offset(s3cx + 70 * scale, h * 0.36), 3 * scale, Paint()..color = const Color(0xFF26C6DA));
+    canvas.drawCircle(Offset(s3cx + 76 * scale, h * 0.5), br, ballPaint);
+    _drawLabel(canvas, '架杆器', Offset(s3cx - 18, h * 0.06), const Color(0xFF26C6DA), fs);
   }
 
-  void _drawLabel(Canvas canvas, String text, Offset pos, Color color) {
+  void _drawLabel(Canvas canvas, String text, Offset pos, Color color, double fontSize) {
     final tp = TextPainter(
-      text: TextSpan(text: text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+      text: TextSpan(text: text, style: TextStyle(color: color, fontSize: fontSize, fontWeight: FontWeight.bold)),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, pos);
@@ -1234,6 +1231,87 @@ class _StrokeAndPower extends StatelessWidget {
 // ===========================================================================
 // Content builders — 瞄准与进球
 // ===========================================================================
+class _DominantEyeGuide extends StatelessWidget {
+  const _DominantEyeGuide();
+  @override
+  Widget build(BuildContext context) => const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _SectionHeader(title: '主视眼与瞄准'),
+        _InfoCard(children: [
+          _P('人的两只眼睛中有一只是"主导眼"（dominant eye），大脑主要用它来判断方向和距离。'
+             '台球瞄准时，必须让主视眼正对球杆线，否则瞄准方向会有系统性偏差。'),
+        ]),
+        SizedBox(height: 16),
+        _SectionHeader(title: '自测主视眼'),
+        _InfoCard(children: [
+          _BL(items: [
+            '双手伸直，拇指和食指围成一个小三角形',
+            '双眼睁开，透过三角形对准远处一个物体',
+            '闭左眼 → 物体仍在三角形内 = 右眼主导',
+            '闭右眼 → 物体仍在三角形内 = 左眼主导',
+          ]),
+          _Tip('约 70% 的人是右眼主导。主视眼通常和惯用手在同一侧，但不一定。'),
+        ]),
+        SizedBox(height: 16),
+        _SectionHeader(title: '下巴位置调整'),
+        _InfoCard(children: [
+          _P('趴下瞄准时，下巴贴杆。关键是让主视眼正好在球杆正上方：'),
+          SizedBox(height: 8),
+          _BL(items: [
+            '右眼主导：下巴稍偏左，使右眼对准球杆中心线',
+            '左眼主导：下巴稍偏右，使左眼对准球杆中心线',
+            '验证方法：趴下后闭合非主视眼，球杆方向不应有偏移',
+          ]),
+          _Tip('如果闭眼后发现球杆方向"跳动"了，说明头部位置需要调整。'),
+        ]),
+        SizedBox(height: 16),
+        _SectionHeader(title: '瞄准视线循环'),
+        _InfoCard(children: [
+          _P('职业选手的视线使用方法：'),
+          SizedBox(height: 8),
+          _BL(items: [
+            '站立阶段：双眼观察进球线，从球后方确认方向',
+            '趴下对准：视线在母球和目标球之间来回 2-3 次',
+            '出杆瞬间：视线锁定在目标球（或接触点）上！',
+            '出杆后：保持姿势 1-2 秒，不要急于抬头',
+          ]),
+          _Tip('出杆时看目标球而非母球，是职业与业余的最大区别之一。看母球会导致下意识调整出杆方向。'),
+        ]),
+        SizedBox(height: 16),
+        _SectionHeader(title: '长距离瞄准要点'),
+        _InfoCard(children: [
+          _P('长距离球（超过半台）是准度最大的挑战，因为微小的方向偏差会被放大。'),
+          SizedBox(height: 8),
+          _BL(items: [
+            '先确认"目标球→袋口"方向（近端，准确度高）',
+            '再确认假想球位置',
+            '最后对齐母球→假想球（每段独立确认，减少累积误差）',
+            '力度中等偏小 — 大力容易偏，且走位难控制',
+            '前手桥要稳 — 长距离时桥手不稳影响巨大',
+          ]),
+        ]),
+        SizedBox(height: 16),
+        _SectionHeader(title: '母球边缘对准法（简化 CTE）'),
+        _InfoCard(children: [
+          _P('一种快速估算切角的方法，用母球和目标球的相对位置关系判断厚薄：'),
+          SizedBox(height: 8),
+          _BL(items: [
+            '直球（0°）：母球中心 → 目标球中心',
+            '3/4 球（~15°）：母球中心 → 目标球中心与边缘之间',
+            '半球（~30°）：母球边缘 → 目标球中心',
+            '1/4 球（~48°）：母球边缘 → 目标球边缘',
+          ]),
+          _Tip('这种方法在长距离时比假想球法更实用，因为不依赖视觉上的假想球位置。详见理论实验室的 CTE 瞄准法。'),
+        ]),
+        SizedBox(height: 16),
+        _QA(items: [
+          (q: '用哪只眼睛瞄准？', a: '始终双眼睁开。但头部位置要让主视眼对准球杆中心线。不要闭一只眼瞄准，会丧失立体视觉。'),
+          (q: '双眼看到两条线怎么办？', a: '这是正常的双眼视差。以主视眼看到的那条线为准。趴下后闭合非主视眼确认方向，然后双眼睁开出杆。'),
+          (q: '为什么出杆时要看目标球？', a: '看母球会引起无意识的微调，导致出杆方向偏移。锁定目标球让身体自动完成"手眼协调"。类似投篮时看篮筐而非球。'),
+          (q: '主视眼和惯用手不同侧怎么办？', a: '这叫"交叉主导"（cross-dominant）。需要更大幅度地调整下巴位置。有些选手甚至会调整站位角度来补偿。'),
+        ]),
+      ]);
+}
+
 class _GhostBall extends StatelessWidget {
   const _GhostBall();
   @override
@@ -1704,6 +1782,24 @@ class _PracticeGuide extends StatelessWidget {
       _PresetButton(preset: BallPreset.presets.firstWhere((p) => p.id == 'stop_shot')),
       _PresetButton(preset: BallPreset.presets.firstWhere((p) => p.id == 'short_straight')),
       _PresetButton(preset: BallPreset.presets.firstWhere((p) => p.id == 'pocket_practice')),
+
+      const SizedBox(height: 16),
+      const _SectionHeader(title: '五分球水平测试'),
+      const _InfoCard(children: [
+        _P('经典五分球是中式八球最常用的水平评估方法：'),
+        SizedBox(height: 4),
+        _BL(items: [
+          '5 颗球放在固定位置，从开球区出发',
+          '连续进完 5 球不犯规 = 得 5 分',
+          '任何失误（未进/犯规）= 0 分，重来',
+          '打 10 局计总分（满分 50 分）',
+        ]),
+        _Tip('评级：0-10 入门 | 11-25 初级 | 26-35 中级 | 36-45 高级 | 46-50 专业'),
+      ]),
+      const SizedBox(height: 6),
+      _PresetButton(preset: BallPreset.presets.firstWhere((p) => p.id == 'five_ball_test')),
+      _PresetButton(preset: BallPreset.presets.firstWhere((p) => p.id == 'five_ball_l')),
+      _PresetButton(preset: BallPreset.presets.firstWhere((p) => p.id == 'five_ball_scatter')),
 
       const SizedBox(height: 16),
       const _SectionHeader(title: '初级（切角与进袋）'),

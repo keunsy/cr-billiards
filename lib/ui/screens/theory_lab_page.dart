@@ -398,61 +398,10 @@ class _GhostBallLabState extends State<_GhostBallLab> {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      AspectRatio(
-        aspectRatio: 1.5,
-        child: CustomPaint(
-          painter: _GhostBallPainter(
-            cutAngleDeg: _cutAngle,
-            distance: _distance,
-          ),
-          child: Container(),
-        ),
-      ),
-      const SizedBox(height: 12),
-      // Legend
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Wrap(spacing: 16, runSpacing: 6, children: const [
-          _LegendItem(color: Color(0xFFF5F5F0), label: '母球 (C)'),
-          _LegendItem(color: Color(0xFFE53935), label: '目标球 (O)'),
-          _LegendItem(color: Color(0x6600E676), label: '假想球 (G)'),
-          _LegendItem(color: Color(0xFF81C784), label: '袋口 (P)'),
-        ]),
-      ),
-      const SizedBox(height: 12),
-      // Sliders
+      // Sliders at top for immediate interaction
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF66BB6A).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.2)),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('什么是假想球瞄准法？',
-                    style: TextStyle(color: Color(0xFF66BB6A), fontSize: 14, fontWeight: FontWeight.bold)),
-                SizedBox(height: 6),
-                Text(
-                  '假想球（Ghost Ball）是最基础的台球瞄准方法。\n'
-                  '想象在目标球与袋口连线的延长线上，放一个"看不见的球"（假想球），'
-                  '它的边缘刚好贴住目标球。\n\n'
-                  '操作步骤：\n'
-                  '1. 画出目标球→袋口的连线\n'
-                  '2. 在连线上找到假想球位置（与目标球刚好相切）\n'
-                  '3. 让白球瞄准假想球的中心出杆\n'
-                  '4. 白球到达假想球位置时，碰撞力沿连线方向传递给目标球\n\n'
-                  '拖动滑杆改变切角，观察假想球位置和进球线路的变化。',
-                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-                ),
-              ],
-            ),
-          ),
           Row(children: [
             const Text('切角', style: TextStyle(color: Colors.white70, fontSize: 12)),
             Expanded(
@@ -481,8 +430,60 @@ class _GhostBallLabState extends State<_GhostBallLab> {
           ]),
         ]),
       ),
+      const SizedBox(height: 8),
+      AspectRatio(
+        aspectRatio: 1.5,
+        child: CustomPaint(
+          painter: _GhostBallPainter(
+            cutAngleDeg: _cutAngle,
+            distance: _distance,
+          ),
+          child: Container(),
+        ),
+      ),
       const SizedBox(height: 12),
-      // Explanation
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Wrap(spacing: 16, runSpacing: 6, children: const [
+          _LegendItem(color: Color(0xFFF5F5F0), label: '母球 (C)'),
+          _LegendItem(color: Color(0xFFE53935), label: '目标球 (O)'),
+          _LegendItem(color: Color(0x6600E676), label: '假想球 (G)'),
+          _LegendItem(color: Color(0xFF81C784), label: '袋口 (P)'),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF66BB6A).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是假想球瞄准法？',
+                  style: TextStyle(color: Color(0xFF66BB6A), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '假想球（Ghost Ball）是最基础的台球瞄准方法。\n'
+                '想象在目标球与袋口连线的延长线上，放一个"看不见的球"（假想球），'
+                '它的边缘刚好贴住目标球。\n\n'
+                '操作步骤：\n'
+                '1. 画出目标球→袋口的连线\n'
+                '2. 在连线上找到假想球位置（与目标球刚好相切）\n'
+                '3. 让白球瞄准假想球的中心出杆\n'
+                '4. 白球到达假想球位置时，碰撞力沿连线方向传递给目标球\n\n'
+                '拖动滑杆改变切角，观察假想球位置和进球线路的变化。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Container(
@@ -546,13 +547,17 @@ class _GhostBallPainter extends CustomPainter {
     final opNorm = opDir / opLen;
     final ghost = objBall - opNorm * (ballR * 2);
 
-    // Cue ball: along G direction, at a comfortable distance
+    // Cue ball: rotate the reverse-pocket direction by cutAngle to place cue ball
     final cutRad = cutAngleDeg * math.pi / 180;
-    final cgDirX = -opNorm.dx * math.cos(cutRad) + opNorm.dy * math.sin(cutRad);
-    final cgDirY = -opNorm.dx * math.sin(cutRad) - opNorm.dy * math.cos(cutRad);
+    // Reverse pocket direction (pointing away from pocket)
+    final revX = -opNorm.dx;
+    final revY = -opNorm.dy;
+    // Rotate clockwise by cutAngle
+    final cgDirX = revX * math.cos(cutRad) + revY * math.sin(cutRad);
+    final cgDirY = -revX * math.sin(cutRad) + revY * math.cos(cutRad);
     final cgDir = Offset(cgDirX, cgDirY);
     final cueDist = w * (0.15 + distance * 0.2);
-    final cueBall = ghost - cgDir * cueDist;
+    final cueBall = ghost + cgDir * cueDist;
 
     final dashes = Paint()
       ..color = Colors.white38
@@ -680,34 +685,6 @@ class _CutAngleTriangleLabState extends State<_CutAngleTriangleLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFA726).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFFFA726).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('角度瞄准法（切角三角）',
-                  style: TextStyle(color: Color(0xFFFFA726), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '切角三角是理解球与球碰撞角度的核心工具。\n'
-                '当白球不是直球进袋时，需要"切"目标球的一侧。\n'
-                '切角 = 目标球→袋口连线与白球→目标球连线之间的夹角。\n\n'
-                '关键概念：\n'
-                '• 切角越大，需要打的球越"薄"\n'
-                '• 切角 0° = 直球（全厚）\n'
-                '• 切角 90° = 完全擦边（全薄，几乎不可能）\n\n'
-                '切换上方模式查看不同的角度可视化方式。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         // Mode buttons
         Wrap(
           spacing: 6,
@@ -762,6 +739,34 @@ class _CutAngleTriangleLabState extends State<_CutAngleTriangleLab> {
         // Legend & theory
         _buildLegend(),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFA726).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFFFA726).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('角度瞄准法（切角三角）',
+                  style: TextStyle(color: Color(0xFFFFA726), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '切角三角是理解球与球碰撞角度的核心工具。\n'
+                '当白球不是直球进袋时，需要"切"目标球的一侧。\n'
+                '切角 = 目标球→袋口连线与白球→目标球连线之间的夹角。\n\n'
+                '关键概念：\n'
+                '• 切角越大，需要打的球越"薄"\n'
+                '• 切角 0° = 直球（全厚）\n'
+                '• 切角 90° = 完全擦边（全薄，几乎不可能）\n\n'
+                '切换上方模式查看不同的角度可视化方式。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         _buildTheory(),
       ],
     );
@@ -1501,35 +1506,6 @@ class _EdgeAimingLabState extends State<_EdgeAimingLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF66BB6A).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是突出点瞄准法？',
-                  style: TextStyle(color: Color(0xFF66BB6A), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '突出点（Contact Point）瞄准法是一种直观的切球瞄准方式。\n\n'
-                '方法：从白球视角看，目标球有一个"突出点"——'
-                '就是目标球边缘上，对准白球方向最突出的那一点。\n'
-                '将白球的边缘对准这个突出点出杆即可。\n\n'
-                '操作步骤：\n'
-                '1. 拖动滑杆改变切角\n'
-                '2. 观察突出点（红色标记）的位置变化\n'
-                '3. 白球的边缘需要对准突出点\n\n'
-                '优势：不需要想象"假想球"，直接看球的边缘对位。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('切角',
@@ -1574,6 +1550,35 @@ class _EdgeAimingLabState extends State<_EdgeAimingLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF66BB6A).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是突出点瞄准法？',
+                  style: TextStyle(color: Color(0xFF66BB6A), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '突出点（Contact Point）瞄准法是一种直观的切球瞄准方式。\n\n'
+                '方法：从白球视角看，目标球有一个"突出点"——'
+                '就是目标球边缘上，对准白球方向最突出的那一点。\n'
+                '将白球的边缘对准这个突出点出杆即可。\n\n'
+                '操作步骤：\n'
+                '1. 拖动滑杆改变切角\n'
+                '2. 观察突出点（红色标记）的位置变化\n'
+                '3. 白球的边缘需要对准突出点\n\n'
+                '优势：不需要想象"假想球"，直接看球的边缘对位。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         _buildNote(),
       ],
     );
@@ -2163,7 +2168,7 @@ class _PocketEdgeAimingPainter extends CustomPainter {
 }
 
 // ---------------------------------------------------------------------------
-// CTE Aiming Lab (Center-To-Edge)
+// CTE Aiming Lab — tabbed: Classic CTE + Pro One CTE
 // ---------------------------------------------------------------------------
 class _CTEAimingLab extends StatefulWidget {
   const _CTEAimingLab();
@@ -2172,42 +2177,39 @@ class _CTEAimingLab extends StatefulWidget {
   State<_CTEAimingLab> createState() => _CTEAimingLabState();
 }
 
-class _CTEAimingLabState extends State<_CTEAimingLab> {
+class _CTEAimingLabState extends State<_CTEAimingLab> with SingleTickerProviderStateMixin {
+  late final TabController _tab;
   double _cutAngleDeg = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF26C6DA).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是 CTE 瞄准系统？',
-                  style: TextStyle(color: Color(0xFF26C6DA), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                'CTE（Center-To-Edge）是一种系统化的切球瞄准方法。\n\n'
-                '核心原理：将白球中心对准目标球边缘的特定参考点，'
-                '根据切角大小选择不同的参考点位（A/B/C 点）。\n\n'
-                '操作步骤：\n'
-                '1. 确定切角大小（小/中/大）\n'
-                '2. 选择对应的参考点（A = 1/4、B = 1/2、C = 3/4 球径处）\n'
-                '3. 将白球中心瞄准目标球上的参考点出杆\n\n'
-                '拖动滑杆改变切角，观察 A/B/C 参考点和瞄准线的变化。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
+        TabBar(
+          controller: _tab,
+          labelColor: const Color(0xFF26C6DA),
+          unselectedLabelColor: Colors.white54,
+          indicatorColor: const Color(0xFF26C6DA),
+          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 13),
+          dividerHeight: 0,
+          tabs: const [Tab(text: '经典 CTE'), Tab(text: 'Pro One CTE')],
+          onTap: (_) => setState(() {}),
         ),
+        const SizedBox(height: 8),
         Row(
           children: [
             const Text('切角',
@@ -2216,8 +2218,8 @@ class _CTEAimingLabState extends State<_CTEAimingLab> {
               child: Slider(
                 value: _cutAngleDeg,
                 min: 5,
-                max: 50,
-                divisions: 45,
+                max: 55,
+                divisions: 50,
                 label: '${_cutAngleDeg.toStringAsFixed(0)}°',
                 activeColor: const Color(0xFF26C6DA),
                 onChanged: (v) => setState(() => _cutAngleDeg = v),
@@ -2234,44 +2236,138 @@ class _CTEAimingLabState extends State<_CTEAimingLab> {
         AspectRatio(
           aspectRatio: 16 / 10,
           child: CustomPaint(
-            painter: _CTEAimingPainter(cutAngleDeg: _cutAngleDeg),
+            painter: _tab.index == 0
+                ? _CTEAimingPainter(cutAngleDeg: _cutAngleDeg)
+                : _ProOneCTEPainter(cutAngleDeg: _cutAngleDeg),
           ),
         ),
         const SizedBox(height: 12),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _LegendItem(color: Color(0xFF26C6DA), label: 'CTE 线（白球中心→目标球外侧边缘）'),
-            _LegendItem(color: Color(0xFFFF6600), label: 'Pivot 前杆身（偏移半皮头）'),
-            _LegendItem(color: Color(0xFF66BB6A), label: 'Pivot 后杆身（回到白球中心）= 实际击球线'),
-            _LegendItem(color: Color(0xFFFFEB3B), label: 'O→P 进球线'),
-            _LegendItem(color: Color(0xFF9C27B0), label: 'G（假想球中心，对比参考）'),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildCTETable(),
-        const SizedBox(height: 12),
-        _buildNote(),
+        if (_tab.index == 0) ..._buildClassicContent()
+        else ..._buildProOneContent(),
       ],
     );
   }
 
-  Widget _buildCTETable() {
+  List<Widget> _buildClassicContent() {
     String alignment;
-    String pivot;
+    String desc;
     if (_cutAngleDeg <= 20) {
-      alignment = 'A 点（目标球近侧 1/4）';
-      pivot = '内侧半皮头';
+      alignment = 'A 点（目标球靠近白球一侧的 1/4 处）';
+      desc = '小角度，白球打在目标球比较厚的位置';
     } else if (_cutAngleDeg <= 35) {
-      alignment = 'B 点（目标球中心）';
-      pivot = '内侧半皮头';
+      alignment = 'B 点（目标球的正中间位置）';
+      desc = '中等角度，打半球厚度';
     } else {
-      alignment = 'C 点（目标球远侧 1/4）';
-      pivot = '内侧半皮头';
+      alignment = 'C 点（目标球靠近袋口一侧的 1/4 处）';
+      desc = '大角度，白球打在目标球比较薄的位置';
     }
+    return [
+      const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _LegendItem(color: Color(0xFF26C6DA), label: '参考线（白球中心 → 目标球背对袋口的边缘）'),
+          _LegendItem(color: Color(0xFFFF6600), label: 'A / B / C 对齐参考点'),
+          _LegendItem(color: Color(0xFF66BB6A), label: '实际出杆方向'),
+          _LegendItem(color: Color(0xFFFFEB3B), label: '进球路线（袋口方向）'),
+        ],
+      ),
+      const SizedBox(height: 12),
+      _infoCard(
+        '完整操作流程',
+        '① 选线路：先看袋口，选最容易进的那个袋。'
+        '想象一条从袋口穿过目标球中心的线——这就是进球线。\n'
+        '   图中黄色虚线 O→P 就是进球线。\n\n'
+        '② 站位：走到白球正后方，让身体对准进球方向。\n\n'
+        '③ 建立参考线：低头沿球杆方向看，'
+        '找到目标球上背对袋口的那个边缘'
+        '（如果袋口在目标球右边，就找目标球的左边缘）。'
+        '然后让白球的正中心对准这个边缘点。\n'
+        '   → 图中青色线就是这条参考线。\n\n'
+        '④ 读参考点：保持参考线不动，同时注意白球面向袋口一侧的边缘'
+        '（和参考线相对的另一边），'
+        '看它落在了目标球身上的什么位置（A/B/C）。\n\n'
+        '⑤ 出杆：确认对齐后，正常出杆。',
+      ),
+      const SizedBox(height: 8),
+      _infoCard(
+        '三个参考点',
+        '• A 点（目标球身上靠近白球一侧的 1/4 处）\n'
+        '  → 小切角（15°-20°），白球打得比较厚\n\n'
+        '• B 点（目标球的正中间）\n'
+        '  → 中等切角（20°-35°），打半球厚度\n\n'
+        '• C 点（目标球身上靠近袋口一侧的 1/4 处）\n'
+        '  → 大切角（35°-50°），白球打得比较薄\n\n'
+        '优点：只需记 3 个位置，简单好上手。\n'
+        '缺点：25° 和 30° 都选 B，但实际厚度不同。',
+      ),
+      const SizedBox(height: 8),
+      _infoCard('当前角度 → $alignment', desc),
+    ];
+  }
 
+  List<Widget> _buildProOneContent() {
+    final overlap = _proOneOverlap(_cutAngleDeg);
+    return [
+      const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _LegendItem(color: Color(0xFF26C6DA), label: '参考线（白球中心 → 目标球背对袋口的边缘）'),
+          _LegendItem(color: Color(0xFFFF9800), label: '重叠区域（白球边缘和目标球重合的部分）'),
+          _LegendItem(color: Color(0xFF66BB6A), label: '实际出杆方向'),
+          _LegendItem(color: Color(0xFFFFEB3B), label: '进球路线（袋口方向）'),
+        ],
+      ),
+      const SizedBox(height: 12),
+      _infoCard(
+        '完整操作流程',
+        '① 选线路：先看袋口，选最容易进的那个袋。'
+        '想象一条从袋口穿过目标球中心的线——这就是进球线。\n'
+        '   图中黄色虚线 O→P 就是进球线。\n\n'
+        '② 站位：走到白球正后方，让身体对准进球方向。\n\n'
+        '③ 建立参考线：低头沿球杆方向看，'
+        '找到目标球上背对袋口的那个边缘'
+        '（如果袋口在目标球右边，就找目标球的左边缘）。'
+        '然后让白球的正中心对准这个边缘点。\n'
+        '   → 图中青色线就是这条参考线。\n\n'
+        '④ 读重叠量：保持参考线不动，同时注意白球面向袋口一侧的边缘'
+        '（和参考线相对的另一边），'
+        '看它和目标球"重叠"了多少。\n'
+        '   → 图中橙色区域就是重叠的部分。\n\n'
+        '⑤ 出杆：确认重叠量后，正常出杆。',
+      ),
+      const SizedBox(height: 8),
+      _infoCard(
+        'Pro One 的核心：重叠量 = 切角',
+        '不需要记 A/B/C 三个点，直接看白球的边缘和目标球重合了多少：\n\n'
+        '• 重叠面积大（白球边缘深入目标球很多）\n'
+        '  → 切角小，打得厚，接近正面碰撞\n\n'
+        '• 重叠面积小（白球边缘刚刚碰到目标球）\n'
+        '  → 切角大，打得薄，接近擦边而过\n\n'
+        '• 完全没有重叠 → 超过 50° 的极薄球\n\n'
+        '这就像一把连续刻度尺，没有空档。\n'
+        '每次打相同角度的球，重叠量都一样，'
+        '打 100 个球后就形成肌肉记忆了。',
+      ),
+      const SizedBox(height: 8),
+      _infoCard(
+        '当前重叠量',
+        '切角 ${_cutAngleDeg.toStringAsFixed(0)}° → '
+        '重叠约 ${(overlap * 100).toStringAsFixed(0)}% 球径\n'
+        '${overlap > 0.6 ? "（很厚，几乎正面撞）" : overlap > 0.3 ? "（中等厚度）" : overlap > 0.05 ? "（比较薄）" : "（极薄，几乎没有重叠）"}',
+      ),
+    ];
+  }
+
+  static double _proOneOverlap(double cutDeg) {
+    final rad = cutDeg * math.pi / 180;
+    return (math.cos(rad)).clamp(0.0, 1.0);
+  }
+
+  Widget _infoCard(String title, String body) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
         color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
@@ -2280,44 +2376,12 @@ class _CTEAimingLabState extends State<_CTEAimingLab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('当前 CTE 参数',
-              style: TextStyle(
+          Text(title,
+              style: const TextStyle(
                   color: Color(0xFF26C6DA), fontSize: 12, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
-          Text('对齐点：$alignment\nPivot：$pivot',
-              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.6)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNote() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFF26C6DA).withValues(alpha: 0.3)),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('CTE 系统说明',
-              style: TextStyle(
-                  color: Color(0xFF26C6DA), fontSize: 12, fontWeight: FontWeight.bold)),
-          SizedBox(height: 6),
-          Text(
-            '原理：站在白球正后方，建立"白球中心→目标球外侧边缘"的视线（CTE线）。\n'
-            '同时看白球内侧边缘对准目标球的 A/B/C 点。\n\n'
-            '步骤：\n'
-            '1. 锁定 CTE 视线（白球中心→目标球外侧边缘）\n'
-            '2. 架杆手偏移半个皮头（内侧或外侧）\n'
-            '3. 以架桥为支点，将球杆 Pivot 回白球中心\n'
-            '4. 这个微小角度偏移自动补偿了正确击球角度\n\n'
-            '对齐规则：≤20° 用 A 点，20-35° 用 B 点，>35° 用 C 点\n'
-            '优势：将主观的角度判断转化为客观的对齐程序。',
-            style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.5),
-          ),
+          Text(body,
+              style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.5)),
         ],
       ),
     );
@@ -2409,16 +2473,17 @@ class _CTEAimingPainter extends CustomPainter {
 
     // ---- Alignment point on OB (A/B/C) ----
     final opPerp = Offset(-opNorm.dy, opNorm.dx);
+    final alignSideSign = _dot(cue - obj, opPerp) > 0 ? 1.0 : -1.0;
     Offset alignPt;
     String alignLabel;
     if (cutAngleDeg <= 20) {
-      alignPt = obj + opPerp * r * 0.5;
+      alignPt = obj + opPerp * alignSideSign * r * 0.5;
       alignLabel = 'A';
     } else if (cutAngleDeg <= 35) {
       alignPt = obj;
       alignLabel = 'B';
     } else {
-      alignPt = obj - opPerp * r * 0.5;
+      alignPt = obj - opPerp * alignSideSign * r * 0.5;
       alignLabel = 'C';
     }
     canvas.drawCircle(alignPt, 3.5, Paint()..color = const Color(0xFFFF6600));
@@ -2535,6 +2600,194 @@ class _CTEAimingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CTEAimingPainter old) => old.cutAngleDeg != cutAngleDeg;
+}
+
+// ---------------------------------------------------------------------------
+// Pro One CTE Painter — continuous overlap visualization
+// ---------------------------------------------------------------------------
+class _ProOneCTEPainter extends CustomPainter {
+  _ProOneCTEPainter({required this.cutAngleDeg});
+
+  final double cutAngleDeg;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final r = math.min(w, h) * 0.042;
+
+    final pocket = Offset(w * 0.82, h * 0.15);
+    final obj = Offset(w * 0.55, h * 0.42);
+    final op = pocket - obj;
+    final opNorm = op / op.distance;
+    final ghost = obj - opNorm * 2 * r;
+
+    // Cue ball placement
+    final vpDir = pocket - ghost;
+    final vpNorm = vpDir.distance > 0 ? vpDir / vpDir.distance : Offset.zero;
+    final vpAngle = math.atan2(vpNorm.dy, vpNorm.dx);
+    final targetRad = math.pi - cutAngleDeg * math.pi / 180;
+    final cAngle = vpAngle - targetRad;
+    final cDir = Offset(math.cos(cAngle), math.sin(cAngle));
+    final cueDist = w * 0.38;
+    final cue = ghost + cDir * cueDist;
+
+    final aimDir = ghost - cue;
+    final aimNorm = aimDir.distance > 0 ? aimDir / aimDir.distance : Offset.zero;
+
+    // Background
+    canvas.drawRect(Offset.zero & size,
+        Paint()..color = const Color(0xFF1B5E20).withValues(alpha: 0.3));
+
+    // Pocket
+    canvas.drawCircle(pocket, r * 1.4, Paint()..color = const Color(0xFF263238));
+    _drawLabel(canvas, 'P', pocket + const Offset(10, -8), const Color(0xFFFFEB3B), 11, bold: true);
+
+    // O→P line
+    _drawDashed(canvas, obj, pocket,
+        Paint()..color = const Color(0xAAFFEB3B)..strokeWidth = 1.2);
+
+    // Object ball
+    canvas.drawCircle(obj, r, Paint()..color = const Color(0xFFFFEB3B));
+    canvas.drawCircle(obj, r,
+        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    _drawLabel(canvas, 'O', obj + Offset(0, r + 14), const Color(0xFFFFEB3B), 11, bold: true);
+
+    // Cue ball
+    canvas.drawCircle(cue, r, Paint()..color = const Color(0xEEFFFFFF));
+    canvas.drawCircle(cue, r,
+        Paint()..color = const Color(0xFFBBBBBB)..style = PaintingStyle.stroke..strokeWidth = 1.2);
+
+    // CTE reference line: cue center → OB far edge
+    final objFarEdge = obj - opNorm * r;
+    final cteDir = objFarEdge - cue;
+    final cteNorm = cteDir.distance > 0 ? cteDir / cteDir.distance : Offset.zero;
+    final cteLineEnd = cue + cteNorm * (cteDir.distance + r * 4);
+    canvas.drawLine(cue, cteLineEnd,
+        Paint()..color = const Color(0xFF26C6DA).withValues(alpha: 0.8)..strokeWidth = 1.8);
+    canvas.drawCircle(objFarEdge, 4, Paint()..color = const Color(0xFF26C6DA));
+    canvas.drawCircle(objFarEdge, 4,
+        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
+
+    // Ghost ball (faint)
+    canvas.drawCircle(ghost, r,
+        Paint()..color = const Color(0x229C27B0));
+    canvas.drawCircle(ghost, r,
+        Paint()..color = const Color(0x669C27B0)..style = PaintingStyle.stroke..strokeWidth = 1);
+
+    // ---- Overlap visualization ----
+    // Project cue ball inner edge onto the OB along the CTE line direction
+    final opPerp = Offset(-opNorm.dy, opNorm.dx);
+    final cueSide = _dot(cue - obj, opPerp) > 0 ? 1.0 : -1.0;
+    final cueInnerEdge = cue + Offset(-aimNorm.dy, aimNorm.dx) * cueSide * r;
+
+    // The overlap region: where cue ball "overlaps" the object ball in the CTE view
+    // Overlap = cos(cutAngle) — 1.0 at 0°, 0.0 at 90°
+    final overlapFrac = math.cos(cutAngleDeg * math.pi / 180).clamp(0.0, 1.0);
+
+    // Highlight the overlap on the object ball
+    if (overlapFrac > 0.02) {
+      final overlapAngleOnOB = math.acos(overlapFrac.clamp(-1.0, 1.0));
+      final nearEdge = obj + opPerp * cueSide * r;
+      final overlapStart = nearEdge;
+      final overlapEnd = obj + opPerp * cueSide * r * (1 - overlapFrac * 2);
+
+      // Draw overlap arc/band on OB
+      final overlapPaint = Paint()
+        ..color = const Color(0xFFFF9800).withValues(alpha: 0.45)
+        ..style = PaintingStyle.fill;
+      final startAng = math.atan2(opPerp.dy * cueSide, opPerp.dx * cueSide);
+      canvas.drawArc(
+        Rect.fromCircle(center: obj, radius: r),
+        startAng - overlapAngleOnOB,
+        overlapAngleOnOB * 2,
+        true,
+        overlapPaint,
+      );
+      // Outline
+      canvas.drawArc(
+        Rect.fromCircle(center: obj, radius: r),
+        startAng - overlapAngleOnOB,
+        overlapAngleOnOB * 2,
+        false,
+        Paint()..color = const Color(0xFFFF9800)..style = PaintingStyle.stroke..strokeWidth = 2,
+      );
+
+      // Overlap % label
+      final labelPos = obj + opPerp * cueSide * (r + 16);
+      _drawLabel(canvas, '${(overlapFrac * 100).toStringAsFixed(0)}%',
+          labelPos, const Color(0xFFFF9800), 12, bold: true);
+    }
+
+    // Mark cue ball inner edge
+    canvas.drawCircle(cueInnerEdge, 3, Paint()..color = const Color(0xFFFF9800));
+
+    // Actual aim line (green)
+    final aimEnd = cue + aimNorm * cueDist * 0.5;
+    canvas.drawLine(cue, aimEnd,
+        Paint()..color = const Color(0xFF66BB6A).withValues(alpha: 0.7)..strokeWidth = 2);
+
+    // Angle arc
+    final oToP = pocket - obj;
+    final oToPNorm = oToP.distance > 0 ? oToP / oToP.distance : Offset.zero;
+    final oToC = cue - obj;
+    final oToCNorm = oToC.distance > 0 ? oToC / oToC.distance : Offset.zero;
+    final arcStartAng = math.atan2(oToPNorm.dy, oToPNorm.dx);
+    final arcEndAng = math.atan2(oToCNorm.dy, oToCNorm.dx);
+    var arcSweep = arcEndAng - arcStartAng;
+    if (arcSweep > math.pi) arcSweep -= 2 * math.pi;
+    if (arcSweep < -math.pi) arcSweep += 2 * math.pi;
+    final arcR = r * 1.6;
+    canvas.drawArc(
+      Rect.fromCircle(center: obj, radius: arcR),
+      arcStartAng, arcSweep, false,
+      Paint()..color = const Color(0xFF26C6DA)..style = PaintingStyle.stroke..strokeWidth = 2,
+    );
+    final midArcAng = arcStartAng + arcSweep / 2;
+    final angleLabelPos = Offset(
+      obj.dx + (arcR + r) * math.cos(midArcAng),
+      obj.dy + (arcR + r) * math.sin(midArcAng),
+    );
+    _drawLabel(canvas, '${cutAngleDeg.toStringAsFixed(0)}°', angleLabelPos,
+        const Color(0xFF26C6DA), 13, bold: true);
+  }
+
+  static double _dot(Offset a, Offset b) => a.dx * b.dx + a.dy * b.dy;
+
+  void _drawDashed(Canvas canvas, Offset from, Offset to, Paint paint) {
+    final dir = to - from;
+    final dist = dir.distance;
+    if (dist < 1) return;
+    final unit = dir / dist;
+    const dashLen = 6.0;
+    const gapLen = 4.0;
+    double d = 0;
+    while (d < dist) {
+      final s = from + unit * d;
+      final e = from + unit * math.min(d + dashLen, dist);
+      canvas.drawLine(s, e, paint);
+      d += dashLen + gapLen;
+    }
+  }
+
+  void _drawLabel(Canvas canvas, String text, Offset pos, Color color,
+      double fontSize, {bool bold = false}) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(pos.dx - tp.width / 2, pos.dy - tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(_ProOneCTEPainter old) => old.cutAngleDeg != cutAngleDeg;
 }
 
 // ---------------------------------------------------------------------------
@@ -2866,35 +3119,6 @@ class _BankMirrorLabState extends State<_BankMirrorLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF42A5F5).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF42A5F5).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是镜像法？',
-                  style: TextStyle(color: Color(0xFF42A5F5), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '镜像法是翻袋瞄准的经典方法。\n'
-                '想象库边是一面镜子，袋口的"镜像"就在库边对面。\n'
-                '白球→镜像袋口的连线与库边的交点就是瞄准点。\n\n'
-                '操作步骤：\n'
-                '1. 找到袋口在库边对面的镜像位置\n'
-                '2. 从白球向镜像袋口画一条直线\n'
-                '3. 直线与库边的交点就是白球应该击打的库边点\n'
-                '4. 白球击中该点后反弹进袋\n\n'
-                '拖动滑杆调节白球位置，观察镜像点和翻袋线路的变化。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         // Mode toggle
         Row(
           children: [
@@ -3026,6 +3250,35 @@ class _BankMirrorLabState extends State<_BankMirrorLab> {
             ],
           ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF42A5F5).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF42A5F5).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是镜像法？',
+                  style: TextStyle(color: Color(0xFF42A5F5), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '镜像法是翻袋瞄准的经典方法。\n'
+                '想象库边是一面镜子，袋口的"镜像"就在库边对面。\n'
+                '白球→镜像袋口的连线与库边的交点就是瞄准点。\n\n'
+                '操作步骤：\n'
+                '1. 找到袋口在库边对面的镜像位置\n'
+                '2. 从白球向镜像袋口画一条直线\n'
+                '3. 直线与库边的交点就是白球应该击打的库边点\n'
+                '4. 白球击中该点后反弹进袋\n\n'
+                '拖动滑杆调节白球位置，观察镜像点和翻袋线路的变化。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -3338,37 +3591,6 @@ class _BankCompensationLabState extends State<_BankCompensationLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEF5350).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFEF5350).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是 1/3 超过两倍补偿？',
-                  style: TextStyle(color: Color(0xFFEF5350), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '菱形系统的结果是近似值，当碰库角度大时需要补偿修正。\n\n'
-                '补偿规则：\n'
-                '当计算出的碰库点编号超过 2 倍（即角度较大），\n'
-                '需要将超出 2 倍的部分乘以 1/3 来修正。\n\n'
-                '例如：计算值 = 5，超过 2×2=4 的部分是 1，\n'
-                '补偿 = 4 + 1×(1/3) = 4.33\n\n'
-                '操作步骤：\n'
-                '1. 先用菱形系统计算碰库点\n'
-                '2. 如果结果超过 2 倍，应用 1/3 补偿\n'
-                '3. 拖动滑杆观察补偿量的变化\n\n'
-                '高角度翻袋时这个补偿非常重要。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('球离库距离',
@@ -3428,6 +3650,37 @@ class _BankCompensationLabState extends State<_BankCompensationLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEF5350).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFEF5350).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是 1/3 超过两倍补偿？',
+                  style: TextStyle(color: Color(0xFFEF5350), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '菱形系统的结果是近似值，当碰库角度大时需要补偿修正。\n\n'
+                '补偿规则：\n'
+                '当计算出的碰库点编号超过 2 倍（即角度较大），\n'
+                '需要将超出 2 倍的部分乘以 1/3 来修正。\n\n'
+                '例如：计算值 = 5，超过 2×2=4 的部分是 1，\n'
+                '补偿 = 4 + 1×(1/3) = 4.33\n\n'
+                '操作步骤：\n'
+                '1. 先用菱形系统计算碰库点\n'
+                '2. 如果结果超过 2 倍，应用 1/3 补偿\n'
+                '3. 拖动滑杆观察补偿量的变化\n\n'
+                '高角度翻袋时这个补偿非常重要。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -3651,35 +3904,6 @@ class _BankDiamondLabState extends State<_BankDiamondLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF9800).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是菱形系统？',
-                  style: TextStyle(color: Color(0xFFFF9800), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '菱形系统是利用球台边框上的标记点（菱形/圆点）来计算翻袋路线。\n\n'
-                '核心公式：出发点编号 - 目标袋编号 = 碰库点编号\n\n'
-                '操作步骤：\n'
-                '1. 找到白球对应的边框编号（出发点）\n'
-                '2. 找到目标袋口对应的边框编号\n'
-                '3. 用公式计算碰库点编号\n'
-                '4. 白球瞄准碰库点出杆\n\n'
-                '拖动滑杆改变参数，观察菱形编号和计算结果。\n'
-                '注意：菱形系统是近似方法，实际需要根据力度和塞度微调。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('目标球位置',
@@ -3731,6 +3955,35 @@ class _BankDiamondLabState extends State<_BankDiamondLab> {
         const SizedBox(height: 12),
         _buildCalculation(),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF9800).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是菱形系统？',
+                  style: TextStyle(color: Color(0xFFFF9800), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '菱形系统是利用球台边框上的标记点（菱形/圆点）来计算翻袋路线。\n\n'
+                '核心公式：出发点编号 - 目标袋编号 = 碰库点编号\n\n'
+                '操作步骤：\n'
+                '1. 找到白球对应的边框编号（出发点）\n'
+                '2. 找到目标袋口对应的边框编号\n'
+                '3. 用公式计算碰库点编号\n'
+                '4. 白球瞄准碰库点出杆\n\n'
+                '拖动滑杆改变参数，观察菱形编号和计算结果。\n'
+                '注意：菱形系统是近似方法，实际需要根据力度和塞度微调。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -3958,33 +4211,6 @@ class _BankEqualDistLabState extends State<_BankEqualDistLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF66BB6A).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是等距法？',
-                  style: TextStyle(color: Color(0xFF66BB6A), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '等距法是一种简单的翻袋估算方法。\n'
-                '核心：目标球到库边的距离 = 白球碰库点到库边垂足的距离。\n\n'
-                '操作步骤：\n'
-                '1. 量（目测）目标球到库边的垂直距离\n'
-                '2. 在库边上找到一个点，使白球到该点的距离等于目标球的距离\n'
-                '3. 这个点就是白球的碰库点\n\n'
-                '拖动滑杆观察等距关系的变化。适合快速估算翻袋路线。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('离库距离',
@@ -4038,6 +4264,33 @@ class _BankEqualDistLabState extends State<_BankEqualDistLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF66BB6A).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是等距法？',
+                  style: TextStyle(color: Color(0xFF66BB6A), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '等距法是一种简单的翻袋估算方法。\n'
+                '核心：目标球到库边的距离 = 白球碰库点到库边垂足的距离。\n\n'
+                '操作步骤：\n'
+                '1. 量（目测）目标球到库边的垂直距离\n'
+                '2. 在库边上找到一个点，使白球到该点的距离等于目标球的距离\n'
+                '3. 这个点就是白球的碰库点\n\n'
+                '拖动滑杆观察等距关系的变化。适合快速估算翻袋路线。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -4244,34 +4497,6 @@ class _BankParallelShiftLabState extends State<_BankParallelShiftLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFAB47BC).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFAB47BC).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是平行位移法？',
-                  style: TextStyle(color: Color(0xFFAB47BC), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '平行位移法利用几何平移来确定翻袋路线。\n\n'
-                '操作步骤：\n'
-                '1. 画出目标球→袋口的直线\n'
-                '2. 将这条线平行移动到白球位置\n'
-                '3. 平行线与库边的交点就是碰库点\n'
-                '4. 白球经过碰库点反弹后会到达目标球→袋口连线上\n\n'
-                '拖动滑杆调节位置，观察平行线的位移效果。\n'
-                '优势：直观、容易在实战中目测。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('离库距离',
@@ -4326,6 +4551,34 @@ class _BankParallelShiftLabState extends State<_BankParallelShiftLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFAB47BC).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFAB47BC).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是平行位移法？',
+                  style: TextStyle(color: Color(0xFFAB47BC), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '平行位移法利用几何平移来确定翻袋路线。\n\n'
+                '操作步骤：\n'
+                '1. 画出目标球→袋口的直线\n'
+                '2. 将这条线平行移动到白球位置\n'
+                '3. 平行线与库边的交点就是碰库点\n'
+                '4. 白球经过碰库点反弹后会到达目标球→袋口连线上\n\n'
+                '拖动滑杆调节位置，观察平行线的位移效果。\n'
+                '优势：直观、容易在实战中目测。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -4719,7 +4972,7 @@ class _CushionBallHub extends StatefulWidget {
 class _CushionBallHubState extends State<_CushionBallHub> with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
 
-  static const _tabs = ['薄切法', '挤库法'];
+  static const _tabs = ['薄切法', '挤库法', '平行瞄准法'];
 
   @override
   void initState() {
@@ -4754,6 +5007,7 @@ class _CushionBallHubState extends State<_CushionBallHub> with SingleTickerProvi
             children: const [
               _CushionDirectCutLab(),
               SingleChildScrollView(child: _CushionFirstLab()),
+              SingleChildScrollView(child: _ParallelAimLab()),
             ],
           ),
         ),
@@ -4782,36 +5036,6 @@ class _CushionDirectCutLabState extends State<_CushionDirectCutLab> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF26C6DA).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是薄切法？',
-                  style: TextStyle(color: Color(0xFF26C6DA), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '当目标球贴库或近库时，白球无法从正面全面接触目标球，'
-                '只能击打球体露出库边的一小部分（"月牙区"）。'
-                '薄切法就是利用小角度切球，只碰目标球表面的薄层，'
-                '让目标球沿库边滚向袋口。\n\n'
-                '操作步骤：\n'
-                '1. 找到目标球→袋口连线（青色虚线）\n'
-                '2. 沿连线反方向找到目标球背面的接触点（红色圆点）\n'
-                '3. 白球瞄准接触点方向出杆\n'
-                '4. 球越贴库，切角越要小（薄），否则碰不到球\n\n'
-                '用下面的滑杆调节参数，观察白球路线和库边干涉区的变化。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('球沿库位置',
@@ -4890,6 +5114,36 @@ class _CushionDirectCutLabState extends State<_CushionDirectCutLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF26C6DA).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF26C6DA).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是薄切法？',
+                  style: TextStyle(color: Color(0xFF26C6DA), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '当目标球贴库或近库时，白球无法从正面全面接触目标球，'
+                '只能击打球体露出库边的一小部分（"月牙区"）。'
+                '薄切法就是利用小角度切球，只碰目标球表面的薄层，'
+                '让目标球沿库边滚向袋口。\n\n'
+                '操作步骤：\n'
+                '1. 找到目标球→袋口连线（青色虚线）\n'
+                '2. 沿连线反方向找到目标球背面的接触点（红色圆点）\n'
+                '3. 白球瞄准接触点方向出杆\n'
+                '4. 球越贴库，切角越要小（薄），否则碰不到球\n\n'
+                '用下面的滑杆调节参数，观察白球路线和库边干涉区的变化。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -5159,36 +5413,6 @@ class _CushionFirstLabState extends State<_CushionFirstLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEF5350).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFEF5350).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是挤库法？',
-                  style: TextStyle(color: Color(0xFFEF5350), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '挤库法（也叫"先打库再碰球"）：\n'
-                '白球先撞击目标球旁边的库边，利用库边反弹的力'
-                '把目标球"挤"向袋口方向。\n\n'
-                '适用场景：目标球紧贴库边，薄切法角度太大无法进球时。\n\n'
-                '操作步骤：\n'
-                '1. 白球瞄准目标球旁边的库边（而非目标球本身）\n'
-                '2. 白球先碰库边反弹\n'
-                '3. 反弹后碰到目标球，把球"挤"向袋口\n'
-                '4. 白球击库点离目标球越近，挤球效果越强\n\n'
-                '用滑杆调节参数观察白球的碰库→碰球路线。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('球沿库位置',
@@ -5243,6 +5467,36 @@ class _CushionFirstLabState extends State<_CushionFirstLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEF5350).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFEF5350).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是挤库法？',
+                  style: TextStyle(color: Color(0xFFEF5350), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '挤库法（也叫"先打库再碰球"）：\n'
+                '白球先撞击目标球旁边的库边，利用库边反弹的力'
+                '把目标球"挤"向袋口方向。\n\n'
+                '适用场景：目标球紧贴库边，薄切法角度太大无法进球时。\n\n'
+                '操作步骤：\n'
+                '1. 白球瞄准目标球旁边的库边（而非目标球本身）\n'
+                '2. 白球先碰库边反弹\n'
+                '3. 反弹后碰到目标球，把球"挤"向袋口\n'
+                '4. 白球击库点离目标球越近，挤球效果越强\n\n'
+                '用滑杆调节参数观察白球的碰库→碰球路线。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -5482,6 +5736,316 @@ class _CushionFirstPainter extends CustomPainter {
 }
 
 // ===========================================================================
+// Cushion Ball: Parallel Aiming (平行瞄准法)
+// ===========================================================================
+class _ParallelAimLab extends StatefulWidget {
+  const _ParallelAimLab();
+
+  @override
+  State<_ParallelAimLab> createState() => _ParallelAimLabState();
+}
+
+class _ParallelAimLabState extends State<_ParallelAimLab> {
+  double _ballXPosition = 0.45;
+  double _gapFromRail = 0.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('球沿库位置',
+                style: TextStyle(color: Colors.white70, fontSize: 12)),
+            Expanded(
+              child: Slider(
+                value: _ballXPosition,
+                min: 0.2,
+                max: 0.75,
+                divisions: 55,
+                activeColor: const Color(0xFF66BB6A),
+                onChanged: (v) => setState(() => _ballXPosition = v),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            const Text('离库距离',
+                style: TextStyle(color: Colors.white70, fontSize: 12)),
+            Expanded(
+              child: Slider(
+                value: _gapFromRail,
+                min: 0.0,
+                max: 0.5,
+                divisions: 50,
+                activeColor: const Color(0xFF66BB6A),
+                onChanged: (v) => setState(() => _gapFromRail = v),
+              ),
+            ),
+            Text(_gapFromRail < 0.05 ? '贴库' : '${(_gapFromRail * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(
+                    color: Color(0xFF66BB6A), fontSize: 13, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _ParallelAimPainter(
+              ballXRatio: _ballXPosition,
+              gapRatio: _gapFromRail,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _LegendItem(color: Color(0xFFFFEB3B), label: '目标球'),
+            _LegendItem(color: Colors.white70, label: '母球'),
+            _LegendItem(color: Color(0xFF66BB6A), label: '母球瞄准线（平行偏移）'),
+            _LegendItem(color: Color(0xFF26C6DA), label: '进球线（目标球→袋口）'),
+            _LegendItem(color: Color(0xFFFF9800), label: '瞄准点（偏移半球径）'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF66BB6A).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是平行瞄准法？',
+                  style: TextStyle(color: Color(0xFF66BB6A), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '贴库球最简单的瞄准方法，不需要计算切角。\n\n'
+                '核心思路：\n'
+                '目标球贴库时，母球无法瞄准球心正面。'
+                '平行瞄准法将瞄准点从球心沿库边方向向袋口侧偏移半个球径。\n\n'
+                '步骤：\n'
+                '1. 从袋口向目标球画想象线（进球线）\n'
+                '2. 找到目标球中心\n'
+                '3. 沿库边方向（朝袋口侧）偏移半个球径 → 瞄准点\n'
+                '4. 母球瞄准该点出杆\n\n'
+                '母球的瞄准线和进球线近似平行，因此得名。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF66BB6A).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.3)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('平行瞄准法要点',
+                  style: TextStyle(
+                      color: Color(0xFF66BB6A), fontSize: 12, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '为什么叫"平行"：\n'
+                '母球的瞄准线和"球心→袋口"连线近似平行，\n'
+                '偏移量恒定为半个球径。\n\n'
+                '适用条件：\n'
+                '• 贴库球或极近库球\n'
+                '• 小到中等角度（< 45°）\n'
+                '• 目标球到袋口距离不太远\n\n'
+                '不适用时：\n'
+                '• 大角度贴库球 → 用挤库法\n'
+                '• 离库超过一个球径 → 用普通假想球法\n\n'
+                '技巧：\n'
+                '• 视觉上只需找到球心偏移半球的位置\n'
+                '• 不需要计算切角或假想球\n'
+                '• 出杆力度中等偏小为宜',
+                style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.5),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Parallel Aiming Painter
+// ---------------------------------------------------------------------------
+class _ParallelAimPainter extends CustomPainter {
+  _ParallelAimPainter({required this.ballXRatio, required this.gapRatio});
+
+  final double ballXRatio;
+  final double gapRatio;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final r = math.min(w, h) * 0.045;
+
+    // Rail
+    final railY = h * 0.15;
+    canvas.drawLine(Offset(0, railY), Offset(w, railY),
+        Paint()..color = const Color(0xFF4E342E)..strokeWidth = 6);
+    canvas.drawRect(Offset(0, railY) & Size(w, h - railY),
+        Paint()..color = const Color(0xFF1B5E20).withValues(alpha: 0.3));
+    canvas.drawRect(Offset.zero & Size(w, railY),
+        Paint()..color = const Color(0xFF4E342E).withValues(alpha: 0.2));
+
+    // Object ball
+    final objX = w * (0.3 + ballXRatio * 0.3);
+    final gap = gapRatio * r * 2;
+    final obj = Offset(objX, railY + r + gap);
+
+    // Pocket (top-right corner)
+    final pocket = Offset(w * 0.92, railY);
+
+    // Pocket direction from object ball
+    final opDir = pocket - obj;
+    final opLen = opDir.distance;
+    final opNorm = opDir / opLen;
+
+    // Parallel aim: offset half a ball radius along the rail toward the pocket.
+    final railTowardPocket = Offset(pocket.dx > obj.dx ? 1.0 : -1.0, 0.0);
+    final aimPoint = obj + railTowardPocket * (r * 0.5);
+
+    // Cue ball position: below and to the left
+    final cue = Offset(w * 0.15, h * 0.72);
+
+    // --- Draw lines ---
+    // 1. Pocket line: object center → pocket (cyan dashed)
+    _drawDashed(canvas, obj, pocket,
+        Paint()..color = const Color(0xFF26C6DA).withValues(alpha: 0.6)..strokeWidth = 1.5);
+
+    // 2. Mother ball aim line → aim point (green solid)
+    canvas.drawLine(cue, aimPoint,
+        Paint()..color = const Color(0xFF66BB6A).withValues(alpha: 0.85)..strokeWidth = 2.5);
+
+    // 3. Extend aim line beyond aim point (green dashed)
+    final aimDir = (aimPoint - cue);
+    final aimDist = aimDir.distance;
+    if (aimDist > 1) {
+      final aimNorm = aimDir / aimDist;
+      _drawDashed(canvas, aimPoint, aimPoint + aimNorm * (r * 4),
+          Paint()..color = const Color(0xFF66BB6A).withValues(alpha: 0.4)..strokeWidth = 1.5);
+    }
+
+    // 4. Show the half-radius rail offset: obj center → aim point bracket
+    final offsetMid = (obj + aimPoint) * 0.5;
+    final bracketOffset = Offset(0, r * 1.5);
+    canvas.drawLine(
+      obj + bracketOffset, aimPoint + bracketOffset,
+      Paint()..color = const Color(0xFFFF9800).withValues(alpha: 0.8)..strokeWidth = 1.5,
+    );
+    canvas.drawLine(
+      obj + bracketOffset * 0.7, obj + bracketOffset * 1.3,
+      Paint()..color = const Color(0xFFFF9800).withValues(alpha: 0.8)..strokeWidth = 1,
+    );
+    canvas.drawLine(
+      aimPoint + bracketOffset * 0.7, aimPoint + bracketOffset * 1.3,
+      Paint()..color = const Color(0xFFFF9800).withValues(alpha: 0.8)..strokeWidth = 1,
+    );
+    _drawLabel(canvas, '½R', offsetMid + bracketOffset * 1.5,
+        const Color(0xFFFF9800), 10, bold: true);
+
+    // 5. Show parallelism: aim line vs pocket line are approximately parallel
+    final parallelEnd = aimPoint + opNorm * (r * 8);
+    _drawDashed(canvas, aimPoint, parallelEnd,
+        Paint()..color = const Color(0xFF26C6DA).withValues(alpha: 0.25)..strokeWidth = 1);
+    final midParallel = (aimPoint + parallelEnd) * 0.5;
+    _drawLabel(canvas, '≈平行', Offset(midParallel.dx, midParallel.dy - 10),
+        const Color(0xFF26C6DA), 9);
+
+    // --- Aim point marker ---
+    canvas.drawCircle(aimPoint, 3, Paint()..color = const Color(0xFFFF9800));
+    canvas.drawCircle(aimPoint, 3,
+        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    _drawLabel(canvas, '瞄准点', aimPoint + Offset(-r - 24, -4),
+        const Color(0xFFFF9800), 10, bold: true);
+
+    // --- Object ball ---
+    canvas.drawCircle(obj, r, Paint()..color = const Color(0xFFFFEB3B));
+    canvas.drawCircle(obj, r,
+        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    // Cross-hair at center
+    canvas.drawLine(Offset(obj.dx - r * 0.4, obj.dy), Offset(obj.dx + r * 0.4, obj.dy),
+        Paint()..color = Colors.black38..strokeWidth = 0.8);
+    canvas.drawLine(Offset(obj.dx, obj.dy - r * 0.4), Offset(obj.dx, obj.dy + r * 0.4),
+        Paint()..color = Colors.black38..strokeWidth = 0.8);
+    _drawLabel(canvas, '目标球', obj + Offset(-r - 28, 4), const Color(0xFFFFEB3B), 10);
+
+    // --- Cue ball ---
+    canvas.drawCircle(cue, r, Paint()..color = const Color(0xEEFFFFFF));
+    canvas.drawCircle(cue, r,
+        Paint()..color = const Color(0xFFBBBBBB)..style = PaintingStyle.stroke..strokeWidth = 1.2);
+    _drawLabel(canvas, '母球', cue + Offset(0, r + 10), Colors.white70, 10);
+
+    // --- Pocket ---
+    canvas.drawCircle(pocket, r * 1.3, Paint()..color = const Color(0xFF263238));
+    canvas.drawCircle(pocket, r * 1.3,
+        Paint()..color = const Color(0xFF5D4037)..style = PaintingStyle.stroke..strokeWidth = 2);
+    _drawLabel(canvas, '袋口', pocket + const Offset(-12, 14), Colors.white70, 10);
+
+    // --- Gap indicator ---
+    if (gapRatio >= 0.05) {
+      _drawLabel(canvas, '间距 ${(gapRatio * 100).toStringAsFixed(0)}%',
+          Offset(objX - r * 4, obj.dy - r - 8), Colors.white38, 10);
+    } else {
+      _drawLabel(canvas, '贴库',
+          Offset(objX - r * 3, obj.dy - r - 8), const Color(0xFFFF9800), 10, bold: true);
+    }
+  }
+
+  void _drawDashed(Canvas canvas, Offset from, Offset to, Paint paint) {
+    final dir = to - from;
+    final dist = dir.distance;
+    if (dist < 1) return;
+    final unit = dir / dist;
+    const dashLen = 6.0;
+    const gapLen = 4.0;
+    double d = 0;
+    while (d < dist) {
+      final s = from + unit * d;
+      final e = from + unit * math.min(d + dashLen, dist);
+      canvas.drawLine(s, e, paint);
+      d += dashLen + gapLen;
+    }
+  }
+
+  void _drawLabel(Canvas canvas, String text, Offset pos, Color color,
+      double fontSize, {bool bold = false}) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(pos.dx - tp.width / 2, pos.dy - tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(_ParallelAimPainter old) =>
+      old.ballXRatio != ballXRatio || old.gapRatio != gapRatio;
+}
+
+// ===========================================================================
 // Physics Labs — 物理原理
 // ===========================================================================
 
@@ -5500,34 +6064,6 @@ class _ReflectionAngleLabState extends State<_ReflectionAngleLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFAB47BC).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFAB47BC).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是入射角与反射角？',
-                  style: TextStyle(color: Color(0xFFAB47BC), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '球碰到库边时的反弹遵循"入射角 ≈ 反射角"原则：\n'
-                '球撞击库边的角度（入射角）等于反弹离开的角度（反射角）。\n\n'
-                '操作步骤：\n'
-                '1. 拖动滑杆改变入射角度\n'
-                '2. 观察入射线（来球方向）和反射线（反弹方向）\n'
-                '3. 注意两个角度始终相等\n\n'
-                '注意：实际打球中，旋转（加塞）会改变反弹角度——'
-                '顺塞增大反弹角，逆塞减小反弹角。本实验展示的是无塞的理想情况。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('入射角',
@@ -5570,6 +6106,34 @@ class _ReflectionAngleLabState extends State<_ReflectionAngleLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFAB47BC).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFAB47BC).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是入射角与反射角？',
+                  style: TextStyle(color: Color(0xFFAB47BC), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '球碰到库边时的反弹遵循"入射角 ≈ 反射角"原则：\n'
+                '球撞击库边的角度（入射角）等于反弹离开的角度（反射角）。\n\n'
+                '操作步骤：\n'
+                '1. 拖动滑杆改变入射角度\n'
+                '2. 观察入射线（来球方向）和反射线（反弹方向）\n'
+                '3. 注意两个角度始终相等\n\n'
+                '注意：实际打球中，旋转（加塞）会改变反弹角度——'
+                '顺塞增大反弹角，逆塞减小反弹角。本实验展示的是无塞的理想情况。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -5773,34 +6337,6 @@ class _SeparationAngleLabState extends State<_SeparationAngleLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF42A5F5).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF42A5F5).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('什么是分离角？',
-                  style: TextStyle(color: Color(0xFF42A5F5), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '分离角是白球碰撞目标球后，白球偏转路径与原击球方向之间的夹角。\n\n'
-                '核心规则（90° 法则）：\n'
-                '中杆无旋转击球时，白球与目标球的分离方向近似成 90°。\n\n'
-                '操作步骤：\n'
-                '1. 拖动滑杆改变切角（白球碰撞角度）\n'
-                '2. 观察碰撞后白球与目标球的分离方向\n'
-                '3. 注意分离角始终接近 90°（中杆情况下）\n\n'
-                '这是走位的基础：知道切角就能预测白球碰撞后的偏转方向。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('切角',
@@ -5842,6 +6378,34 @@ class _SeparationAngleLabState extends State<_SeparationAngleLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF42A5F5).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF42A5F5).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是分离角？',
+                  style: TextStyle(color: Color(0xFF42A5F5), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '分离角是白球碰撞目标球后，白球偏转路径与原击球方向之间的夹角。\n\n'
+                '核心规则（90° 法则）：\n'
+                '中杆无旋转击球时，白球与目标球的分离方向近似成 90°。\n\n'
+                '操作步骤：\n'
+                '1. 拖动滑杆改变切角（白球碰撞角度）\n'
+                '2. 观察碰撞后白球与目标球的分离方向\n'
+                '3. 注意分离角始终接近 90°（中杆情况下）\n\n'
+                '这是走位的基础：知道切角就能预测白球碰撞后的偏转方向。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -5903,7 +6467,13 @@ class _SeparationAnglePainter extends CustomPainter {
 
     final objDir = (obj - cue);
     final objNorm = objDir.distance > 0 ? objDir / objDir.distance : opNorm;
-    final cueExitDir = Offset(-objNorm.dy, objNorm.dx);
+
+    // 90° rule: object exits toward pocket; cue exits perpendicular to object path.
+    final objExitDir = opNorm;
+    var cueExitDir = Offset(-opNorm.dy, opNorm.dx);
+    if (_dot(cueExitDir, objNorm) < 0) {
+      cueExitDir = Offset(opNorm.dy, -opNorm.dx);
+    }
 
     final contact = obj - opNorm * r;
     final pathLen = w * 0.32;
@@ -5912,7 +6482,7 @@ class _SeparationAnglePainter extends CustomPainter {
         Paint()
           ..color = Colors.white.withValues(alpha: 0.35)
           ..strokeWidth = 2);
-    canvas.drawLine(obj, obj + objNorm * pathLen,
+    canvas.drawLine(obj, obj + objExitDir * pathLen,
         Paint()..color = const Color(0xFF66BB6A)..strokeWidth = 3);
     canvas.drawLine(contact, contact + cueExitDir * pathLen,
         Paint()..color = const Color(0xFF42A5F5)..strokeWidth = 3);
@@ -5923,7 +6493,7 @@ class _SeparationAnglePainter extends CustomPainter {
     final arcR = r * 2.8;
     canvas.drawArc(
       Rect.fromCircle(center: contact, radius: arcR),
-      math.atan2(objNorm.dy, objNorm.dx),
+      math.atan2(objExitDir.dy, objExitDir.dx),
       math.pi / 2,
       false,
       Paint()
@@ -5936,8 +6506,8 @@ class _SeparationAnglePainter extends CustomPainter {
       '90°',
       contact +
           Offset(
-            (objNorm.dx - cueExitDir.dx) * arcR * 0.55,
-            (objNorm.dy - cueExitDir.dy) * arcR * 0.55,
+            (objExitDir.dx - cueExitDir.dx) * arcR * 0.55,
+            (objExitDir.dy - cueExitDir.dy) * arcR * 0.55,
           ),
       const Color(0xFFFF9800),
       12,
@@ -6001,6 +6571,8 @@ class _SeparationAnglePainter extends CustomPainter {
     )..layout();
     tp.paint(canvas, Offset(pos.dx - tp.width / 2, pos.dy - tp.height / 2));
   }
+
+  static double _dot(Offset a, Offset b) => a.dx * b.dx + a.dy * b.dy;
 
   @override
   bool shouldRepaint(_SeparationAnglePainter old) =>
@@ -6101,35 +6673,6 @@ class _HighMidLowLabState extends State<_HighMidLowLab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF9800).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.2)),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('高中低杆如何影响走位？',
-                  style: TextStyle(color: Color(0xFFFF9800), fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text(
-                '击球点在母球的上、中、下不同位置，会产生不同的旋转效果：\n\n'
-                '• 高杆（上方）：母球带前旋，碰撞后跟进\n'
-                '• 中杆（中心）：母球无旋，碰撞后滑行→定杆\n'
-                '• 低杆（下方）：母球带回旋，碰撞后回缩\n\n'
-                '操作步骤：\n'
-                '1. 拖动滑杆从低到高调整击球点\n'
-                '2. 观察白球碰撞后的路径变化\n'
-                '3. 高杆→白球跟着目标球走；低杆→白球往回走\n\n'
-                '掌握高中低杆是走位的核心技能。',
-                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
-              ),
-            ],
-          ),
-        ),
         Row(
           children: [
             const Text('击球点',
@@ -6170,6 +6713,35 @@ class _HighMidLowLabState extends State<_HighMidLowLab> {
           ],
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF9800).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('高中低杆如何影响走位？',
+                  style: TextStyle(color: Color(0xFFFF9800), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '击球点在母球的上、中、下不同位置，会产生不同的旋转效果：\n\n'
+                '• 高杆（上方）：母球带前旋，碰撞后跟进\n'
+                '• 中杆（中心）：母球无旋，碰撞后滑行→定杆\n'
+                '• 低杆（下方）：母球带回旋，碰撞后回缩\n\n'
+                '操作步骤：\n'
+                '1. 拖动滑杆从低到高调整击球点\n'
+                '2. 观察白球碰撞后的路径变化\n'
+                '3. 高杆→白球跟着目标球走；低杆→白球往回走\n\n'
+                '掌握高中低杆是走位的核心技能。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -6218,10 +6790,11 @@ class _HighMidLowPainter extends CustomPainter {
     final objDir = (obj - cue);
     final objNorm = objDir.distance > 0 ? objDir / objDir.distance : opNorm;
 
+    // Rotate from object exit direction (O→P); π/2 = stun perpendicular (90° rule).
     final cueExitAngle = math.pi / 2 - hitPoint * math.pi / 3;
     final cueExitDir = Offset(
-      objNorm.dx * math.cos(cueExitAngle) - objNorm.dy * math.sin(cueExitAngle),
-      objNorm.dx * math.sin(cueExitAngle) + objNorm.dy * math.cos(cueExitAngle),
+      opNorm.dx * math.cos(cueExitAngle) - opNorm.dy * math.sin(cueExitAngle),
+      opNorm.dx * math.sin(cueExitAngle) + opNorm.dy * math.cos(cueExitAngle),
     );
 
     final contact = obj - opNorm * r;
@@ -6231,7 +6804,7 @@ class _HighMidLowPainter extends CustomPainter {
         Paint()
           ..color = Colors.white.withValues(alpha: 0.35)
           ..strokeWidth = 2);
-    canvas.drawLine(obj, obj + objNorm * pathLen,
+    canvas.drawLine(obj, obj + opNorm * pathLen,
         Paint()..color = const Color(0xFF66BB6A)..strokeWidth = 3);
     canvas.drawLine(contact, contact + cueExitDir * pathLen,
         Paint()..color = const Color(0xFF42A5F5)..strokeWidth = 3);

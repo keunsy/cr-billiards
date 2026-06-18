@@ -84,7 +84,7 @@ class BallPlacement {
   bool _isNearBall(Vector2 worldPos, Ball ball) {
     if (ball.isPocketed && !ball.isCueBall) return false;
     if (ball.isPocketed) return true;
-    return (worldPos - ball.body.position).length <= TableConstants.ballRadius * 3.0;
+    return (worldPos - ball.body.position).length <= TableConstants.ballRadius * 5.0;
   }
 
   static Vector2 clampToTable(Vector2 pos) {

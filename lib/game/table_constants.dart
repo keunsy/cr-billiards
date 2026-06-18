@@ -9,15 +9,13 @@ class TableConstants {
   static const double halfLength = length / 2;
   static const double halfWidth = width / 2;
 
-  // Ball: diameter 57.15mm
-  static const double ballRadius = 2.8575;
+  // Ball: slightly enlarged for mobile visibility (real 57.15mm = 2.8575)
+  static const double ballRadius = 3.5;
   static const double ballDiameter = ballRadius * 2;
 
-  // Pocket openings (measured as sensor radius for physics):
-  // Corner pocket throat: ~82mm → sensor radius ≈ 4.1cm
-  // Side pocket throat: ~88mm → sensor radius ≈ 4.4cm
-  static const double cornerPocketRadius = 4.1;
-  static const double sidePocketRadius = 4.4;
+  // Pocket openings scaled to keep relative difficulty similar
+  static const double cornerPocketRadius = 5.0;
+  static const double sidePocketRadius = 5.4;
 
   // Cushion rubber elasticity — ref: tailuge/billiards ee=0.85, Mathavan model
   static const double cushionRestitution = 0.78;

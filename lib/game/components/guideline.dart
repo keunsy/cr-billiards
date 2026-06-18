@@ -149,30 +149,35 @@ class Guideline extends Component {
   }
 
   Vector2? _cueBallDeflection(Vector2 aimDir, Vector2 centerLine) {
-    // Base: 90-degree tangent rule (stun/center hit, pure sliding collision)
     final tangent = Vector2(-centerLine.y, centerLine.x);
     if (aimDir.dot(tangent) < 0) {
       tangent.negate();
     }
     final tangentDir = tangent.normalized();
+    final aimNorm = aimDir.normalized();
 
-    // Topspin (high, spinOffset.y < 0): cue ball follows → mix toward aimDir
-    // Backspin (low, spinOffset.y > 0): cue ball draws back → mix toward -aimDir
-    // The vertical spin component bends the deflection angle.
-    //   followFactor > 0 → follow, < 0 → draw back
+    // followFactor: >0 = topspin (high), <0 = backspin (low), 0 = center
     final followFactor = -spinOffset.y;
 
-    // Power moderates the effect: higher power → less spin influence on angle
-    // (ball leaves faster, less time for spin to grip cloth)
-    final powerDamping = 1.0 - power.clamp(0.0, 1.0) * 0.4;
+    // Power effect on separation angle:
+    // Low power: ball transitions to rolling before impact → separation < 90°
+    //   (rolling collision pushes cue ball more toward aim direction)
+    // High power: pure sliding collision → separation ≈ 90°
+    // powerRoll: 0 at max power (pure sliding), ~0.5 at min power (rolling)
+    final p = power.clamp(0.0, 1.0);
+    final powerRoll = (1.0 - p) * 0.5;
 
-    // Blend: 0 = pure tangent, positive = toward aim, negative = toward -aim
-    final blendAmount = (followFactor * 0.5 * powerDamping).clamp(-0.8, 0.8);
-    final spinDir = blendAmount >= 0
-        ? aimDir.normalized()
-        : (aimDir.normalized()..negate());
+    // Spin effect: high spin → follow (toward aim), low spin → draw (away)
+    final spinBlend = (followFactor * 0.5 * (1.0 - p * 0.4)).clamp(-0.8, 0.8);
 
-    final result = tangentDir + spinDir * blendAmount.abs();
+    // Combined deflection direction:
+    //  base = tangent (90° rule)
+    //  + powerRoll toward aim (rolling reduces separation angle)
+    //  + spinBlend toward/away from aim
+    final totalFollow = powerRoll + spinBlend;
+    final followDir = totalFollow >= 0 ? aimNorm : (aimNorm.clone()..negate());
+
+    final result = tangentDir + followDir * totalFollow.abs();
     return result.length > 0.001 ? result.normalized() : tangentDir;
   }
 

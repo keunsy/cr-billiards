@@ -108,9 +108,9 @@ class _GameScreenState extends State<GameScreen> {
                     children: [
                       // Scoreboard
                       Positioned(
-                        top: isCompactLocal ? 30 : 36,
-                        left: 60,
-                        right: 60,
+                        top: isCompactLocal ? 26 : 36,
+                        left: isCompactLocal ? 40 : 60,
+                        right: isCompactLocal ? 40 : 60,
                         child: Scoreboard(rules: _game.rules),
                       ),
                     ],

@@ -74,6 +74,49 @@ class BallPreset {
       balls: [(1, hw - 30, -hh + 25)],
       cueBallPosition: (27.1, -59.8),
     ),
+    // ======== 五分球水平测试 ========
+    BallPreset(
+      id: 'five_ball_test',
+      name: '五分球测试（经典阵）',
+      subtitle: '连进 5 球不犯规 = 5 分，10 局满分 50',
+      icon: Icons.star,
+      balls: [
+        (1, 63.5, 0.0),      // 置球点，直球方向
+        (2, 30.0, -25.0),     // 左侧中台，小切角
+        (3, 80.0, 30.0),      // 右侧远台
+        (4, -20.0, 20.0),     // 底部左半台
+        (5, 50.0, -40.0),     // 上部远端
+      ],
+      cueBallPosition: (-63.5, 0),
+    ),
+    BallPreset(
+      id: 'five_ball_l',
+      name: '五分球（L 阵）',
+      subtitle: '球沿 L 形分布，练走位衔接',
+      icon: Icons.star_half,
+      balls: [
+        (1, 70.0, -30.0),     // 右上
+        (2, 70.0, 0.0),       // 右中
+        (3, 70.0, 30.0),      // 右下
+        (4, 40.0, 30.0),      // 中下
+        (5, 10.0, 30.0),      // 左下
+      ],
+      cueBallPosition: (-40, 0),
+    ),
+    BallPreset(
+      id: 'five_ball_scatter',
+      name: '五分球（散布阵）',
+      subtitle: '球分散全台，考验全面走位能力',
+      icon: Icons.star_outline,
+      balls: [
+        (1, 80.0, -35.0),     // 右上远角
+        (2, -40.0, -25.0),    // 左上
+        (3, 50.0, 20.0),      // 中台偏右
+        (4, -60.0, 40.0),     // 左下远角
+        (5, 20.0, -10.0),     // 中台偏左
+      ],
+      cueBallPosition: (-63.5, 0),
+    ),
     // ======== 入门级 ========
     BallPreset(
       id: 'straight_line',

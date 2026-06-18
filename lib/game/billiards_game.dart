@@ -80,6 +80,7 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
   late AimController _aimController;
 
   async.Timer? _longPressTimer;
+  async.Timer? _foulClearTimer;
   Vector2? _longPressWorldPos;
 
   bool get canAim =>
@@ -159,7 +160,7 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
       _longPressTimer?.cancel();
       final delay = state == GameState.placingBall
           ? const Duration(milliseconds: 50)
-          : const Duration(milliseconds: 400);
+          : const Duration(milliseconds: 280);
       _longPressTimer = async.Timer(delay, () {
         if (_longPressWorldPos != null) {
           _ballPlacement.onLongPress(
@@ -454,6 +455,14 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
     if (foul.isFoul) AudioManager.instance.playFoul();
     rules.onShotComplete(_shotAnalysis, foul);
     rulesNotifier.value = rules.clone();
+
+    _foulClearTimer?.cancel();
+    if (foul.isFoul) {
+      _foulClearTimer = async.Timer(const Duration(seconds: 3), () {
+        rules.lastFoul = null;
+        rulesNotifier.value = rules.clone();
+      });
+    }
   }
 
   void resetStandard() {
@@ -628,23 +637,23 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
   }
 
   void _fitCamera(Vector2 size) {
-    // Reserve space for overlay UI to keep table visually centered
-    const uiLeftPx = 50.0;  // spin indicator
-    const uiRightPx = 55.0; // power gauge + shoot button
-    const uiTopPx = 40.0;   // toolbar + scoreboard
-    const uiBottomPx = 8.0;
+    final isCompact = size.y < 500;
+    final uiLeftPx = isCompact ? 0.0 : 50.0;
+    final uiRightPx = isCompact ? 28.0 : 55.0;
+    final uiTopPx = isCompact ? 0.0 : 40.0;
+    const uiBottomPx = 0.0;
+    final margin = isCompact ? 4.0 : 16.0;
 
     final usableW = size.x - uiLeftPx - uiRightPx;
     final usableH = size.y - uiTopPx - uiBottomPx;
 
-    final tableW = TableConstants.length + 20;
-    final tableH = (TableConstants.width + 20) * TableConstants.perspectiveYScale;
+    final tableW = TableConstants.length + margin;
+    final tableH = (TableConstants.width + margin) * TableConstants.perspectiveYScale;
     final scaleX = usableW / tableW;
     final scaleY = usableH / tableH;
-    final zoom = math.min(scaleX, scaleY) * 0.95;
+    final zoom = math.min(scaleX, scaleY);
     camera.viewfinder.zoom = zoom;
 
-    // Offset camera so table centers within the usable area
     final offsetXPx = (uiLeftPx - uiRightPx) / 2;
     final offsetYPx = (uiTopPx - uiBottomPx) / 2;
     camera.viewfinder.position = Vector2(
@@ -664,6 +673,7 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
   @override
   void onRemove() {
     _cancelLongPressTimer();
+    _foulClearTimer?.cancel();
     powerNotifier.dispose();
     spinNotifier.dispose();
     rulesNotifier.dispose();
