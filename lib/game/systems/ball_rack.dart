@@ -32,13 +32,15 @@ class BallPreset {
 
   static final List<BallPreset> presets = [
     // ======== 单球角度练习（最基础）========
+    // 目标球(hw-30, -hh+25) 打右上角袋口(hw-3, -hh+3)
+    // 母球位置按假想球中心精确计算（距假想球 70cm）
     BallPreset(
       id: 'single_straight',
       name: '单球直球',
       subtitle: '0° 切角，正对底袋',
       icon: Icons.gps_fixed,
       balls: [(1, hw - 30, -hh + 25)],
-      cueBallPosition: (hw - 80, -hh + 25),
+      cueBallPosition: (38.3, 9.3),
     ),
     BallPreset(
       id: 'single_15',
@@ -46,7 +48,7 @@ class BallPreset {
       subtitle: '小角度薄切，体会假想球偏移',
       icon: Icons.gps_fixed,
       balls: [(1, hw - 30, -hh + 25)],
-      cueBallPosition: (hw - 90, -hh + 38),
+      cueBallPosition: (28.7, -6.2),
     ),
     BallPreset(
       id: 'single_30',
@@ -54,7 +56,7 @@ class BallPreset {
       subtitle: '中等角度，半球厚度',
       icon: Icons.gps_fixed,
       balls: [(1, hw - 30, -hh + 25)],
-      cueBallPosition: (hw - 90, -hh + 60),
+      cueBallPosition: (23.5, -23.7),
     ),
     BallPreset(
       id: 'single_45',
@@ -62,7 +64,7 @@ class BallPreset {
       subtitle: '大角度，1/4 球厚度',
       icon: Icons.gps_fixed,
       balls: [(1, hw - 30, -hh + 25)],
-      cueBallPosition: (hw - 80, hh - 30),
+      cueBallPosition: (22.9, -42.0),
     ),
     BallPreset(
       id: 'single_60',
@@ -70,7 +72,7 @@ class BallPreset {
       subtitle: '极薄球感训练',
       icon: Icons.gps_fixed,
       balls: [(1, hw - 30, -hh + 25)],
-      cueBallPosition: (hw - 35, 0),
+      cueBallPosition: (27.1, -59.8),
     ),
     // ======== 入门级 ========
     BallPreset(

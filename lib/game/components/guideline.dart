@@ -79,7 +79,8 @@ class Guideline extends Component {
     // --- 5b. Right triangle from contact point T ---
     if (showTriangle && cutAngle > 3.0 && cutAngle < 85.0) {
       final contactPoint = (objectCenter + ghostCenter) * 0.5;
-      _drawPocketTriangle(canvas, origin, objectCenter, ghostCenter, contactPoint, objectDir);
+      _drawPocketTriangle(canvas, origin, objectCenter, ghostCenter, contactPoint, objectDir,
+          cutAngle: showAngle ? cutAngle : null, cutColor: cutColor);
     }
 
     // --- 5c. Cut-point mark on object ball (standard G-vertex cut angle) ---
@@ -100,9 +101,10 @@ class Guideline extends Component {
         );
 
         if (showAngle && cutAngle > 5.0) {
-          final deflAngle = _angleBetween(dir, deflection);
+          // Separation angle: between object ball path and cue ball deflection
+          final sepAngle = _angleBetween(objectDir, deflection);
           final labelPos = ghostCenter + deflection * 10;
-          _drawDeflectionLabel(canvas, labelPos, deflAngle);
+          _drawDeflectionLabel(canvas, labelPos, sepAngle);
         }
       }
     }
@@ -198,7 +200,6 @@ class Guideline extends Component {
     if (sweep > math.pi) sweep -= 2 * math.pi;
     if (sweep < -math.pi) sweep += 2 * math.pi;
 
-    // Pick the shorter arc (the actual cut angle side)
     if (sweep.abs() > math.pi) {
       sweep = sweep > 0 ? sweep - 2 * math.pi : sweep + 2 * math.pi;
     }
@@ -215,12 +216,15 @@ class Guideline extends Component {
         ..strokeWidth = 0.3,
     );
 
-    // Label at mid-angle of the arc
-    final midAngle = angle1 + sweep / 2;
-    final labelR = arcR + 4.0;
-    final lx = center.x + math.cos(midAngle) * labelR;
-    final ly = center.y + math.sin(midAngle) * labelR;
-    _drawAngleLabel(canvas, Vector2(lx, ly), angleDeg, color);
+    // Only draw label here when triangle is NOT visible (small cut angles)
+    final hasTriangle = showTriangle && angleDeg > 3.0 && angleDeg < 85.0;
+    if (!hasTriangle) {
+      final midAngle = angle1 + sweep / 2;
+      final labelR = arcR + 4.0;
+      final lx = center.x + math.cos(midAngle) * labelR;
+      final ly = center.y + math.sin(midAngle) * labelR;
+      _drawAngleLabel(canvas, Vector2(lx, ly), angleDeg, color);
+    }
   }
 
   void _drawAngleLabel(Canvas canvas, Vector2 pos, double angle, Color color) {
@@ -240,7 +244,7 @@ class Guideline extends Component {
   }
 
   void _drawDeflectionLabel(Canvas canvas, Vector2 pos, double angle) {
-    final label = '${angle.round()}°';
+    final label = '分离${angle.round()}°';
     final textPainter = TextPainter(
       text: TextSpan(
         text: label,
@@ -303,10 +307,10 @@ class Guideline extends Component {
   /// through T, C = cue ball.
   /// Triangle: T-D-C with right angle at D.
   void _drawPocketTriangle(Canvas canvas, Vector2 cueBall, Vector2 objectBall,
-      Vector2 ghostCenter, Vector2 contactPoint, Vector2 objectDir) {
+      Vector2 ghostCenter, Vector2 contactPoint, Vector2 objectDir,
+      {double? cutAngle, Color? cutColor}) {
     final lineUnit = objectDir;
 
-    // Project cueBall onto pocket line passing through contact point T
     final tc = cueBall - contactPoint;
     final projLen = tc.dot(lineUnit);
     final foot = contactPoint + lineUnit * projLen;
@@ -319,26 +323,22 @@ class Guideline extends Component {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.3;
 
-    // T→D: adjacent side (along pocket line)
     canvas.drawLine(
       Offset(contactPoint.x, contactPoint.y),
       Offset(foot.x, foot.y),
       triPaint,
     );
-    // D→C: opposite side (perpendicular)
     canvas.drawLine(
       Offset(foot.x, foot.y),
       Offset(cueBall.x, cueBall.y),
       triPaint,
     );
-    // T→C: hypotenuse
     canvas.drawLine(
       Offset(contactPoint.x, contactPoint.y),
       Offset(cueBall.x, cueBall.y),
       triPaint,
     );
 
-    // Right angle marker at D
     if (perpDist > 2.0 && projLen.abs() > 2.0) {
       final dToT = (contactPoint - foot).normalized() * 1.5;
       final dToC = (cueBall - foot).normalized() * 1.5;
@@ -349,7 +349,6 @@ class Guideline extends Component {
       canvas.drawLine(Offset(sq2.x, sq2.y), Offset(sq3.x, sq3.y), triPaint);
     }
 
-    // Contact-point marker
     canvas.drawCircle(
       Offset(contactPoint.x, contactPoint.y),
       0.5,
@@ -370,6 +369,12 @@ class Guideline extends Component {
     _drawTriLabel(canvas, midAdj, '长${adjRatio.toStringAsFixed(1)}', const Color(0xBBFFEB3B));
     _drawTriLabel(canvas, midPerp, '短1.0', const Color(0xBB00BFFF));
     _drawTriLabel(canvas, midHyp, '斜${hypRatio.toStringAsFixed(1)}', const Color(0xBB66BB6A));
+
+    // Cut angle label inside the triangle (centroid area)
+    if (cutAngle != null && cutAngle > 0.5) {
+      final centroid = (contactPoint + foot + cueBall) / 3.0;
+      _drawAngleLabel(canvas, centroid, cutAngle, cutColor ?? const Color(0xFFFFEB3B));
+    }
   }
 
   /// Draw the "cut mark" on the target ball surface.

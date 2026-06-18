@@ -701,11 +701,11 @@ class _Stance extends StatelessWidget {
         const _InfoCard(children: [
           _BL(items: [
             '后手（握杆手）握在杆的重心后方约 10-15cm',
-            '三指（中指、无名指、小指）轻松环绕球杆',
+            '三指（中指、无名指、小指）轻松环绕球杆，虎口（拇指与食指间）自然包裹',
             '手腕自然下垂，前臂垂直地面',
             '握力轻松——像握一支牙刷，不是锤子',
           ]),
-          _Tip('出杆时只有前臂像钟摆一样运动，大臂和肩膀保持不动。'),
+          _Tip('出杆时只有前臂像钟摆一样运动，大臂和肩膀保持不动。握杆手的虎口不要死死卡住球杆，保持松弛才能让出杆顺畅。'),
         ]),
         const SizedBox(height: 8),
         SizedBox(height: 130, width: double.infinity, child: CustomPaint(painter: _GripPainter())),
@@ -728,11 +728,12 @@ class _BridgeHand extends StatelessWidget {
           SizedBox(height: 8),
           _BL(items: [
             '手掌摊平放在台面上，五指自然张开，指尖和掌根抓紧台布',
-            '拇指向上翘起，紧靠食指第一关节形成 V 型导槽',
-            '球杆沿 V 型槽前后滑动，拇指提供侧向限位',
+            '拇指向上翘起，紧靠食指第一关节形成 V 型导槽——这个槽就叫"虎口"',
+            '虎口的高低决定杆头击球点：打高杆拇指抬高，打低杆压低虎口',
+            '球杆沿虎口前后滑动，拇指提供侧向限位，保证出杆直',
             '出杆时只有球杆在动，架杆手纹丝不动',
           ]),
-          _Tip('要诀：V 槽高度决定杆头击球位置。打高杆时 V 槽抬高，打低杆时压低。'),
+          _Tip('关键：虎口要贴合球杆但不能夹紧。松了球杆左右晃，紧了出杆不顺滑。开始练习时先用开放式虎口，稳了再过渡到闭合式。'),
         ]),
         const SizedBox(height: 8),
         SizedBox(
@@ -758,6 +759,26 @@ class _BridgeHand extends StatelessWidget {
           height: 160,
           width: double.infinity,
           child: CustomPaint(painter: _ClosedBridgePainter()),
+        ),
+        const SizedBox(height: 16),
+        const _SectionHeader(title: '凤眼架（Phoenix Eye Bridge）'),
+        const _InfoCard(children: [
+          _P('中式台球最流行的架杆方式，兼具开放式的视野和闭合式的稳定性，是大部分中式八球选手的首选。'),
+          SizedBox(height: 8),
+          _BL(items: [
+            '食指弯曲，与拇指指尖对接形成一个"凤眼"形状的环，球杆穿过这个环',
+            '中指、无名指、小指三指张开撑住台面，提供稳定支撑',
+            '拇指和食指的接触点形成虎口——球杆在虎口中前后滑动',
+            '虎口不能太紧（出杆不顺）也不能太松（球杆左右晃动）',
+            '通过调节手掌隆起高度，控制球杆击打母球的位置（高中低杆）',
+          ]),
+          _Tip('凤眼架的核心：食指第一关节弯曲搭在拇指指尖上，而不是像闭合式那样整根食指绕一圈。这样形成的环更紧凑，视线也更好。'),
+        ]),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 160,
+          width: double.infinity,
+          child: CustomPaint(painter: _PhoenixEyeBridgePainter()),
         ),
         const SizedBox(height: 16),
         const _SectionHeader(title: '特殊架杆'),
@@ -802,73 +823,74 @@ class _BridgeHand extends StatelessWidget {
 class _OpenBridgePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
+    final w = size.width;
+    final h = size.height;
+    final cx = w / 2;
 
-    final tablePaint = Paint()..color = const Color(0xFF1B4332);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(0, cy - 10, size.width, 20), const Radius.circular(4)),
-      tablePaint,
-    );
+    // Schematic cross-section view: looking from front along the cue
+    final tableY = h * 0.65;
+    canvas.drawRect(Rect.fromLTWH(0, tableY, w, h - tableY), Paint()..color = const Color(0xFF1B4332));
+    canvas.drawLine(Offset(0, tableY), Offset(w, tableY), Paint()..color = const Color(0xFF4E342E)..strokeWidth = 2);
 
-    final handColor = const Color(0xFFE8B89D);
-    final handPaint = Paint()..color = handColor;
-    final outlinePaint = Paint()
-      ..color = Colors.white38
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
+    // Cue stick (horizontal, side view)
+    final cueY = tableY - 22;
+    canvas.drawLine(Offset(cx - 120, cueY), Offset(cx + 130, cueY),
+      Paint()..color = const Color(0xFFFFF8E1)..strokeWidth = 5..strokeCap = StrokeCap.round);
+    canvas.drawCircle(Offset(cx + 130, cueY), 3, Paint()..color = const Color(0xFF26C6DA));
 
-    // Palm
-    final palmRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset(cx, cy + 10), width: 90, height: 50),
-      const Radius.circular(8),
-    );
-    canvas.drawRRect(palmRect, handPaint);
-    canvas.drawRRect(palmRect, outlinePaint);
+    // Schematic: thumb (left, angled up)
+    final thumbBase = Offset(cx - 20, tableY - 2);
+    final thumbTip = Offset(cx - 35, cueY - 14);
+    canvas.drawLine(thumbBase, thumbTip, Paint()..color = const Color(0xFFE8B89D)..strokeWidth = 8..strokeCap = StrokeCap.round);
+    canvas.drawCircle(thumbTip, 5, Paint()..color = const Color(0xFFE8B89D));
 
-    // Fingers spread on table
-    for (var i = 0; i < 4; i++) {
-      final fx = cx - 30 + i * 20.0;
-      final fingerPath = Path()
-        ..moveTo(fx - 5, cy - 10)
-        ..lineTo(fx - 4, cy - 35)
-        ..quadraticBezierTo(fx, cy - 42, fx + 4, cy - 35)
-        ..lineTo(fx + 5, cy - 10)
-        ..close();
-      canvas.drawPath(fingerPath, handPaint);
-      canvas.drawPath(fingerPath, outlinePaint);
+    // Schematic: index finger base (right, angled up)
+    final indexBase = Offset(cx + 10, tableY - 2);
+    final indexTop = Offset(cx + 5, cueY - 8);
+    canvas.drawLine(indexBase, indexTop, Paint()..color = const Color(0xFFE8B89D)..strokeWidth = 8..strokeCap = StrokeCap.round);
+    canvas.drawCircle(indexTop, 5, Paint()..color = const Color(0xFFE8B89D));
+
+    // V-groove highlight between thumb tip and index top
+    canvas.drawLine(thumbTip, Offset(cx - 15, cueY + 2), Paint()..color = const Color(0xFFFF9800)..strokeWidth = 2);
+    canvas.drawLine(Offset(cx - 15, cueY + 2), indexTop, Paint()..color = const Color(0xFFFF9800)..strokeWidth = 2);
+
+    // 虎口 label with arrow
+    _arrow(canvas, Offset(cx - 70, h * 0.12), Offset(cx - 20, cueY - 4), const Color(0xFFFF9800));
+    _lbl(canvas, '虎口（V型槽）', Offset(cx - 105, h * 0.05), const Color(0xFFFF9800), bold: true);
+
+    // Other fingers on table (schematic dots)
+    for (var i = 0; i < 3; i++) {
+      final fx = cx + 30 + i * 20.0;
+      canvas.drawCircle(Offset(fx, tableY - 4), 5, Paint()..color = const Color(0xFFE8B89D));
+      canvas.drawLine(Offset(fx, tableY - 4), Offset(fx, tableY - 16),
+        Paint()..color = const Color(0xFFE8B89D)..strokeWidth = 6..strokeCap = StrokeCap.round);
     }
 
-    // Thumb raised — V-groove
-    final thumbPath = Path()
-      ..moveTo(cx - 40, cy + 5)
-      ..lineTo(cx - 55, cy - 25)
-      ..quadraticBezierTo(cx - 58, cy - 35, cx - 50, cy - 35)
-      ..lineTo(cx - 35, cy - 15)
-      ..close();
-    canvas.drawPath(thumbPath, handPaint);
-    canvas.drawPath(thumbPath, outlinePaint);
+    // Labels
+    _lbl(canvas, '拇指', Offset(thumbTip.dx - 20, thumbTip.dy - 16), Colors.white54);
+    _lbl(canvas, '食指', Offset(indexTop.dx + 8, indexTop.dy - 14), Colors.white54);
+    _lbl(canvas, '中/无/小指撑台面', Offset(cx + 18, tableY - 30), Colors.white54);
+    _lbl(canvas, '球杆', Offset(cx + 85, cueY - 14), Colors.white54);
+    _lbl(canvas, '← 球杆在虎口中前后滑动 →', Offset(cx - 80, tableY + 10), const Color(0xFF66BB6A));
 
-    // Cue stick
-    final cuePaint = Paint()
-      ..color = const Color(0xFFFFF8E1)
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(cx - 120, cy - 10), Offset(cx + 130, cy - 10), cuePaint);
-    // Cue tip
-    canvas.drawCircle(Offset(cx + 130, cy - 10), 3, Paint()..color = const Color(0xFF26C6DA));
-
-    // V-groove label
-    _drawLabel(canvas, 'V 型槽', Offset(cx - 70, cy - 50), const Color(0xFF26C6DA));
-    _drawLabel(canvas, '球杆滑动方向 →', Offset(cx + 40, cy - 30), Colors.white54);
+    // View label
+    _lbl(canvas, '正面剖面示意图', Offset(w - 100, 4), Colors.white24);
   }
 
-  void _drawLabel(Canvas canvas, String text, Offset pos, Color color) {
+  void _arrow(Canvas c, Offset from, Offset to, Color cl) {
+    c.drawLine(from, to, Paint()..color = cl..strokeWidth = 1.5);
+    final d = to - from; final n = d / d.distance; final p = Offset(-n.dy, n.dx);
+    c.drawPath(Path()..moveTo(to.dx, to.dy)
+      ..lineTo(to.dx - n.dx * 6 + p.dx * 3, to.dy - n.dy * 6 + p.dy * 3)
+      ..lineTo(to.dx - n.dx * 6 - p.dx * 3, to.dy - n.dy * 6 - p.dy * 3)..close(),
+      Paint()..color = cl);
+  }
+
+  void _lbl(Canvas c, String t, Offset p, Color cl, {bool bold = false}) {
     final tp = TextPainter(
-      text: TextSpan(text: text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(canvas, pos);
+      text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10, fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
+      textDirection: TextDirection.ltr)..layout();
+    tp.paint(c, p);
   }
 
   @override
@@ -881,83 +903,177 @@ class _ClosedBridgePainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-    final tablePaint = Paint()..color = const Color(0xFF1B4332);
+    // Table surface
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(0, cy - 10, size.width, 20), const Radius.circular(4)),
-      tablePaint,
+      RRect.fromRectAndRadius(Rect.fromLTWH(0, cy + 5, size.width, size.height - cy - 5), const Radius.circular(4)),
+      Paint()..color = const Color(0xFF1B4332),
     );
 
     final handColor = const Color(0xFFE8B89D);
     final handPaint = Paint()..color = handColor;
-    final outlinePaint = Paint()
-      ..color = Colors.white38
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
+    final outline = Paint()..color = Colors.white38..style = PaintingStyle.stroke..strokeWidth = 1.5;
 
     // Palm
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(cx, cy + 10), width: 85, height: 48),
-        const Radius.circular(8),
-      ),
-      handPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(cx, cy + 10), width: 85, height: 48),
-        const Radius.circular(8),
-      ),
-      outlinePaint,
-    );
+    final palmRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx + 5, cy + 22), width: 95, height: 50), const Radius.circular(10));
+    canvas.drawRRect(palmRect, handPaint);
+    canvas.drawRRect(palmRect, outline);
 
-    // Support fingers (middle, ring, pinky) on table
+    // Support fingers (middle, ring, pinky)
     for (var i = 0; i < 3; i++) {
-      final fx = cx + 5 + i * 18.0;
-      final fingerPath = Path()
-        ..moveTo(fx - 5, cy - 10)
-        ..lineTo(fx - 4, cy - 32)
-        ..quadraticBezierTo(fx, cy - 38, fx + 4, cy - 32)
-        ..lineTo(fx + 5, cy - 10)
+      final fx = cx + 10 + i * 18.0;
+      final fp = Path()
+        ..moveTo(fx - 6, cy + 2)
+        ..lineTo(fx - 5, cy - 22)
+        ..quadraticBezierTo(fx, cy - 28, fx + 5, cy - 22)
+        ..lineTo(fx + 6, cy + 2)
         ..close();
-      canvas.drawPath(fingerPath, handPaint);
-      canvas.drawPath(fingerPath, outlinePaint);
+      canvas.drawPath(fp, handPaint);
+      canvas.drawPath(fp, outline);
     }
 
-    // Index finger curled around cue — loop
-    final loopPath = Path();
-    loopPath.addOval(Rect.fromCenter(center: Offset(cx - 15, cy - 15), width: 30, height: 22));
-    canvas.drawPath(loopPath, Paint()..color = handColor.withValues(alpha: 0.7));
-    canvas.drawPath(loopPath, outlinePaint);
+    // Index finger curled around cue (loop/ring shape)
+    final loopCenter = Offset(cx - 12, cy - 8);
+    canvas.drawOval(Rect.fromCenter(center: loopCenter, width: 32, height: 24),
+      Paint()..color = handColor.withValues(alpha: 0.75));
+    canvas.drawOval(Rect.fromCenter(center: loopCenter, width: 32, height: 24), outline);
 
-    // Thumb pressing on index finger
+    // Highlight the loop
+    canvas.drawOval(Rect.fromCenter(center: loopCenter, width: 32, height: 24),
+      Paint()..color = const Color(0x33FF9800)..style = PaintingStyle.stroke..strokeWidth = 2.5);
+
+    // Thumb pressing on index finger from below
     final thumbPath = Path()
-      ..moveTo(cx - 35, cy + 5)
-      ..lineTo(cx - 45, cy - 18)
-      ..quadraticBezierTo(cx - 48, cy - 28, cx - 38, cy - 25)
-      ..lineTo(cx - 25, cy - 10)
+      ..moveTo(cx - 40, cy + 15)
+      ..lineTo(cx - 52, cy - 10)
+      ..quadraticBezierTo(cx - 56, cy - 20, cx - 46, cy - 22)
+      ..lineTo(cx - 30, cy - 5)
       ..close();
     canvas.drawPath(thumbPath, handPaint);
-    canvas.drawPath(thumbPath, outlinePaint);
+    canvas.drawPath(thumbPath, outline);
 
-    // Cue stick through loop
-    final cuePaint = Paint()
-      ..color = const Color(0xFFFFF8E1)
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(cx - 120, cy - 15), Offset(cx + 130, cy - 15), cuePaint);
-    canvas.drawCircle(Offset(cx + 130, cy - 15), 3, Paint()..color = const Color(0xFF26C6DA));
+    // Cue stick through the loop
+    final cuePaint = Paint()..color = const Color(0xFFFFF8E1)..strokeWidth = 4..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(cx - 130, cy - 8), Offset(cx + 140, cy - 8), cuePaint);
+    canvas.drawCircle(Offset(cx + 140, cy - 8), 3, Paint()..color = const Color(0xFF26C6DA));
 
-    // Labels
-    _drawLabel(canvas, '食指环绕球杆', Offset(cx - 65, cy - 50), const Color(0xFFFF9800));
-    _drawLabel(canvas, '拇指压住食指', Offset(cx - 70, cy + 30), const Color(0xFF66BB6A));
+    // Arrows and labels
+    _arrow(canvas, Offset(cx - 50, cy - 45), loopCenter + const Offset(0, -12), const Color(0xFFFF9800));
+    _lbl(canvas, '食指弯曲环绕球杆', Offset(cx - 90, cy - 50), const Color(0xFFFF9800));
+
+    _arrow(canvas, Offset(cx - 80, cy + 40), Offset(cx - 46, cy + 5), const Color(0xFF66BB6A));
+    _lbl(canvas, '拇指从下方压住食指', Offset(cx - 110, cy + 42), const Color(0xFF66BB6A));
+
+    _lbl(canvas, '三指撑台面', Offset(cx + 15, cy - 38), Colors.white54);
+    _lbl(canvas, '球杆穿过食指环', Offset(cx + 50, cy - 20), Colors.white54);
   }
 
-  void _drawLabel(Canvas canvas, String text, Offset pos, Color color) {
-    final tp = TextPainter(
-      text: TextSpan(text: text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(canvas, pos);
+  void _arrow(Canvas c, Offset from, Offset to, Color cl) {
+    c.drawLine(from, to, Paint()..color = cl..strokeWidth = 1.5);
+    final d = to - from; final n = d / d.distance; final p = Offset(-n.dy, n.dx);
+    c.drawPath(Path()..moveTo(to.dx, to.dy)
+      ..lineTo(to.dx - n.dx * 6 + p.dx * 3, to.dy - n.dy * 6 + p.dy * 3)
+      ..lineTo(to.dx - n.dx * 6 - p.dx * 3, to.dy - n.dy * 6 - p.dy * 3)..close(),
+      Paint()..color = cl);
+  }
+
+  void _lbl(Canvas c, String t, Offset p, Color cl) {
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
+    tp.paint(c, p);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+class _PhoenixEyeBridgePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+
+    // Table surface
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(0, cy + 5, size.width, size.height - cy - 5), const Radius.circular(4)),
+      Paint()..color = const Color(0xFF1B4332),
+    );
+
+    final handColor = const Color(0xFFE8B89D);
+    final handPaint = Paint()..color = handColor;
+    final outline = Paint()..color = Colors.white38..style = PaintingStyle.stroke..strokeWidth = 1.5;
+
+    // Palm
+    final palmRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx + 5, cy + 22), width: 95, height: 50), const Radius.circular(10));
+    canvas.drawRRect(palmRect, handPaint);
+    canvas.drawRRect(palmRect, outline);
+
+    // Three support fingers (middle, ring, pinky)
+    for (var i = 0; i < 3; i++) {
+      final fx = cx + 10 + i * 18.0;
+      final fp = Path()
+        ..moveTo(fx - 6, cy + 2)
+        ..lineTo(fx - 5, cy - 22)
+        ..quadraticBezierTo(fx, cy - 28, fx + 5, cy - 22)
+        ..lineTo(fx + 6, cy + 2)
+        ..close();
+      canvas.drawPath(fp, handPaint);
+      canvas.drawPath(fp, outline);
+    }
+
+    // Index finger: bent, tip touching thumb tip to form "phoenix eye"
+    final indexPath = Path()
+      ..moveTo(cx - 10, cy + 2)
+      ..quadraticBezierTo(cx - 20, cy - 18, cx - 28, cy - 14)
+      ..quadraticBezierTo(cx - 35, cy - 10, cx - 30, cy - 2)
+      ..lineTo(cx - 10, cy + 2)
+      ..close();
+    canvas.drawPath(indexPath, handPaint);
+    canvas.drawPath(indexPath, outline);
+
+    // Thumb: coming up from below, tip meeting index finger tip
+    final thumbPath = Path()
+      ..moveTo(cx - 42, cy + 15)
+      ..lineTo(cx - 48, cy - 2)
+      ..quadraticBezierTo(cx - 50, cy - 12, cx - 40, cy - 14)
+      ..lineTo(cx - 30, cy - 2)
+      ..close();
+    canvas.drawPath(thumbPath, handPaint);
+    canvas.drawPath(thumbPath, outline);
+
+    // "Phoenix eye" connection point
+    final eyeCenter = Offset(cx - 32, cy - 8);
+    canvas.drawCircle(eyeCenter, 8, Paint()..color = const Color(0x44FF9800)..style = PaintingStyle.stroke..strokeWidth = 2.5);
+
+    // Cue stick through the phoenix eye
+    final cuePaint = Paint()..color = const Color(0xFFFFF8E1)..strokeWidth = 4..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(cx - 130, cy - 6), Offset(cx + 140, cy - 6), cuePaint);
+    canvas.drawCircle(Offset(cx + 140, cy - 6), 3, Paint()..color = const Color(0xFF26C6DA));
+
+    // Labels with arrows
+    _arrow(canvas, Offset(cx - 80, cy - 45), eyeCenter + const Offset(-2, -10), const Color(0xFFFF9800));
+    _lbl(canvas, '"凤眼"= 虎口', Offset(cx - 110, cy - 50), const Color(0xFFFF9800));
+    _lbl(canvas, '食指尖搭拇指尖', Offset(cx - 100, cy - 38), const Color(0xFFFF9800));
+
+    _lbl(canvas, '三指张开撑住台面', Offset(cx + 10, cy - 38), Colors.white54);
+    _lbl(canvas, '球杆在凤眼中滑动', Offset(cx + 50, cy - 20), Colors.white54);
+
+    // Side comparison note
+    _lbl(canvas, '比闭合式更紧凑，视线更好', Offset(cx - 50, cy + 42), const Color(0xFF66BB6A));
+  }
+
+  void _arrow(Canvas c, Offset from, Offset to, Color cl) {
+    c.drawLine(from, to, Paint()..color = cl..strokeWidth = 1.5);
+    final d = to - from; final n = d / d.distance; final p = Offset(-n.dy, n.dx);
+    c.drawPath(Path()..moveTo(to.dx, to.dy)
+      ..lineTo(to.dx - n.dx * 6 + p.dx * 3, to.dy - n.dy * 6 + p.dy * 3)
+      ..lineTo(to.dx - n.dx * 6 - p.dx * 3, to.dy - n.dy * 6 - p.dy * 3)..close(),
+      Paint()..color = cl);
+  }
+
+  void _lbl(Canvas c, String t, Offset p, Color cl) {
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
+    tp.paint(c, p);
   }
 
   @override
@@ -1813,7 +1929,7 @@ class _BallChartWidget extends StatelessWidget {
   };
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: 60,
+        height: 80,
         width: double.infinity,
         child: CustomPaint(painter: _BallChartPainter(_ballColors)),
       );
@@ -1881,8 +1997,8 @@ class _TableDiagramPainter extends CustomPainter {
     final hsx = ox + w / 4;
     canvas.drawLine(Offset(hsx, oy + 6), Offset(hsx, oy + h - 6), Paint()..color = Colors.white24..strokeWidth = 1);
     canvas.drawCircle(Offset(ox + w * 3 / 4, oy + h / 2), 3, Paint()..color = Colors.white38);
-    _lbl(canvas, '开球线', Offset(hsx, oy + h + 8), Colors.white54);
-    _lbl(canvas, '置球点', Offset(ox + w * 3 / 4, oy + h + 8), Colors.white54);
+    _lbl(canvas, '开球线', Offset(hsx - 12, oy + h - 14), Colors.white54);
+    _lbl(canvas, '置球点', Offset(ox + w * 3 / 4 - 12, oy + h - 14), Colors.white54);
     _lbl(canvas, '底袋', Offset(ox - 2, oy - 10), Colors.white38);
     _lbl(canvas, '中袋', Offset(ox + w / 2 - 8, oy - 10), Colors.white38);
   }
@@ -2019,7 +2135,7 @@ class _AimDiagramPainter extends CustomPainter {
 class _SpinDiagramWidget extends StatelessWidget {
   const _SpinDiagramWidget();
   @override
-  Widget build(BuildContext context) => SizedBox(height: 90, width: double.infinity, child: CustomPaint(painter: _SpinDiagramPainter()));
+  Widget build(BuildContext context) => SizedBox(height: 110, width: double.infinity, child: CustomPaint(painter: _SpinDiagramPainter()));
 }
 
 class _SpinDiagramPainter extends CustomPainter {
@@ -2031,8 +2147,8 @@ class _SpinDiagramPainter extends CustomPainter {
     void draw(double cx, double cy, double dx, double dy, String label) {
       canvas.drawCircle(Offset(cx, cy), r, Paint()..color = Colors.white12);
       canvas.drawCircle(Offset(cx, cy), r, Paint()..color = Colors.white24..style = PaintingStyle.stroke..strokeWidth = 1);
-      canvas.drawLine(Offset(cx - r, cy), Offset(cx + r, cy), Paint()..color = Colors.white10..strokeWidth = 0.5);
-      canvas.drawLine(Offset(cx, cy - r), Offset(cx, cy + r), Paint()..color = Colors.white10..strokeWidth = 0.5);
+      canvas.drawLine(Offset(cx - r, cy), Offset(cx + r, cy), Paint()..color = Colors.white38..strokeWidth = 0.5);
+      canvas.drawLine(Offset(cx, cy - r), Offset(cx, cy + r), Paint()..color = Colors.white38..strokeWidth = 0.5);
       canvas.drawCircle(Offset(cx + dx, cy + dy), dotR, Paint()..color = Colors.red);
       final tp = TextPainter(text: TextSpan(text: label, style: const TextStyle(color: Colors.white54, fontSize: 10)), textDirection: TextDirection.ltr)..layout();
       tp.paint(canvas, Offset(cx - tp.width / 2, cy + r + 4));
@@ -2052,7 +2168,7 @@ class _SpinDiagramPainter extends CustomPainter {
 class _SpinDiagramWidgetVertical extends StatelessWidget {
   const _SpinDiagramWidgetVertical();
   @override
-  Widget build(BuildContext context) => SizedBox(height: 90, width: double.infinity, child: CustomPaint(painter: _SpinVerticalPainter()));
+  Widget build(BuildContext context) => SizedBox(height: 110, width: double.infinity, child: CustomPaint(painter: _SpinVerticalPainter()));
 }
 
 class _SpinVerticalPainter extends CustomPainter {
@@ -2064,8 +2180,8 @@ class _SpinVerticalPainter extends CustomPainter {
     void draw(double cx, double cy, double dx, double dy, String label) {
       canvas.drawCircle(Offset(cx, cy), r, Paint()..color = Colors.white12);
       canvas.drawCircle(Offset(cx, cy), r, Paint()..color = Colors.white24..style = PaintingStyle.stroke..strokeWidth = 1);
-      canvas.drawLine(Offset(cx - r, cy), Offset(cx + r, cy), Paint()..color = Colors.white10..strokeWidth = 0.5);
-      canvas.drawLine(Offset(cx, cy - r), Offset(cx, cy + r), Paint()..color = Colors.white10..strokeWidth = 0.5);
+      canvas.drawLine(Offset(cx - r, cy), Offset(cx + r, cy), Paint()..color = Colors.white38..strokeWidth = 0.5);
+      canvas.drawLine(Offset(cx, cy - r), Offset(cx, cy + r), Paint()..color = Colors.white38..strokeWidth = 0.5);
       canvas.drawCircle(Offset(cx + dx, cy + dy), dotR, Paint()..color = Colors.red);
       final tp = TextPainter(text: TextSpan(text: label, style: const TextStyle(color: Colors.white54, fontSize: 10)), textDirection: TextDirection.ltr)..layout();
       tp.paint(canvas, Offset(cx - tp.width / 2, cy + r + 4));
@@ -2099,7 +2215,7 @@ class _CutAngleDiagramPainter extends CustomPainter {
     canvas.drawCircle(Offset(objX, objY), 10, Paint()..color = const Color(0x55FFEB3B));
     final aimFrom = Offset(cx - 80, cy + 10);
     _dashed(canvas, aimFrom, Offset(cx, cy), const Color(0xFF66BB6A));
-    canvas.drawLine(Offset(cx, cy), Offset(objX, objY), Paint()..color = Colors.white30..strokeWidth = 1);
+    canvas.drawLine(Offset(cx, cy), Offset(objX, objY), Paint()..color = Colors.white54..strokeWidth = 1);
     final od = Offset(objX - cx, objY - cy);
     final on2 = od / od.distance;
     _dashed(canvas, Offset(objX, objY), Offset(objX + on2.dx * 60, objY + on2.dy * 60), const Color(0xFFFFEB3B));
@@ -2283,7 +2399,7 @@ class _SideSpinDiagramPainter extends CustomPainter {
     final hitX = ox + w * 0.55;
     final hit = Offset(hitX, cushionY + 4);
     final approach = Offset(hitX - 35, size.height - 14);
-    canvas.drawLine(approach, hit, Paint()..color = Colors.white30..strokeWidth = 1);
+    canvas.drawLine(approach, hit, Paint()..color = Colors.white54..strokeWidth = 1);
     canvas.drawCircle(approach, 7, Paint()..color = Colors.white);
     _lbl(canvas, '母球', Offset(approach.dx - 14, approach.dy + 10), Colors.white54);
 
@@ -2383,7 +2499,7 @@ class _BreakShotDiagramPainter extends CustomPainter {
     final cueCenter = Offset(hsx, oy + h / 2);
     _arrow(canvas, cueCenter, Offset(rackCx - 14, rackCy), const Color(0xFF66BB6A));
     _lbl(canvas, '开球方向', Offset((cueCenter.dx + rackCx) / 2 - 20, cueCenter.dy - 18), const Color(0xFF66BB6A));
-    _lbl(canvas, '开球线', Offset(hsx - 16, oy + h + 2), Colors.white38);
+    _lbl(canvas, '开球线', Offset(hsx - 16, oy + h - 12), Colors.white38);
   }
 
   void _arrow(Canvas c, Offset from, Offset to, Color cl) {
@@ -2407,7 +2523,7 @@ class _BreakShotDiagramPainter extends CustomPainter {
   }
 
   void _lbl(Canvas c, String t, Offset p, Color cl) {
-    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 9)), textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10)), textDirection: TextDirection.ltr)..layout();
     tp.paint(c, p);
   }
 
@@ -2466,7 +2582,7 @@ class _SafetyDiagramPainter extends CustomPainter {
 
     // Snooker indicator from opponent view
     canvas.drawLine(blocker, objBall, Paint()..color = Colors.white.withValues(alpha: 0.12)..strokeWidth = 1);
-    _lbl(canvas, '对方视角被挡', Offset(ox + w * 0.38, oy + h + 2), const Color(0xFFE53935));
+    _lbl(canvas, '对方视角被挡', Offset(ox + w * 0.38, oy + h - 12), const Color(0xFFE53935));
   }
 
   void _dashed(Canvas c, Offset a, Offset b, Color cl) {
@@ -2502,7 +2618,7 @@ class _SafetyDiagramPainter extends CustomPainter {
   }
 
   void _lbl(Canvas c, String t, Offset p, Color cl) {
-    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 9)), textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10)), textDirection: TextDirection.ltr)..layout();
     tp.paint(c, p);
   }
 
@@ -2581,7 +2697,7 @@ class _PositionZoneDiagramPainter extends CustomPainter {
   }
 
   void _lbl(Canvas c, String t, Offset p, Color cl) {
-    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 9, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
     tp.paint(c, p);
   }
 
@@ -2666,7 +2782,7 @@ class _PottingLinesDiagramPainter extends CustomPainter {
   }
 
   void _lbl(Canvas c, String t, Offset p, Color cl) {
-    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 9, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
     tp.paint(c, p);
   }
 
@@ -2779,7 +2895,7 @@ class _GripPainter extends CustomPainter {
   }
 
   void _lbl(Canvas c, String t, Offset p, Color cl) {
-    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 9)), textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10)), textDirection: TextDirection.ltr)..layout();
     tp.paint(c, p);
   }
 
@@ -2826,7 +2942,7 @@ class _FollowStopDrawPathPainter extends CustomPainter {
   }
 
   void _lbl(Canvas c, String t, Offset p, Color cl) {
-    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 9)), textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10)), textDirection: TextDirection.ltr)..layout();
     tp.paint(c, p);
   }
 
@@ -2880,7 +2996,7 @@ class _ClearanceOrderPainter extends CustomPainter {
         canvas.drawCircle(center, r + 2, Paint()..color = const Color(0xFFE91E63)..style = PaintingStyle.stroke..strokeWidth = 1);
       }
       final tp = TextPainter(
-        text: TextSpan(text: b.$3, style: TextStyle(color: isEight ? Colors.white : Colors.black87, fontSize: 8, fontWeight: FontWeight.bold)),
+        text: TextSpan(text: b.$3, style: TextStyle(color: isEight ? Colors.white : Colors.black87, fontSize: 10, fontWeight: FontWeight.bold)),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset(bx - tp.width / 2, by - tp.height / 2));
@@ -2901,7 +3017,7 @@ class _ClearanceOrderPainter extends CustomPainter {
   }
 
   void _lbl(Canvas c, String t, Offset p, Color cl) {
-    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 9)), textDirection: TextDirection.ltr)..layout();
+    final tp = TextPainter(text: TextSpan(text: t, style: TextStyle(color: cl, fontSize: 10)), textDirection: TextDirection.ltr)..layout();
     tp.paint(c, p);
   }
 

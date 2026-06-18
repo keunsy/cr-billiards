@@ -555,7 +555,7 @@ class _GhostBallPainter extends CustomPainter {
     final cueBall = ghost - cgDir * cueDist;
 
     final dashes = Paint()
-      ..color = Colors.white24
+      ..color = Colors.white38
       ..strokeWidth = 0.8
       ..style = PaintingStyle.stroke;
 
@@ -1173,7 +1173,7 @@ class _TrianglePainter extends CustomPainter {
 
     // Aim line C→G (faint)
     _drawDashed(canvas, cue, ghost,
-        const Color(0xFF66BB6A).withValues(alpha: 0.3), 1.2);
+        const Color(0xFF66BB6A).withValues(alpha: 0.4), 1.2);
 
     // ---- Aim direction ----
     final aimDir = (ghost - cue);
@@ -1189,7 +1189,7 @@ class _TrianglePainter extends CustomPainter {
     final centerStart = cue - aimNorm * (w * 0.1);
     final centerEnd = cue + aimNorm * w * 1.5;
     _drawDashed(canvas, centerStart, centerEnd,
-        const Color(0xFFE91E63).withValues(alpha: 0.15), 1.0);
+        const Color(0xFFE91E63).withValues(alpha: 0.4), 1.0);
 
     // Center line vs object ball intersection (C→G hits the object ball)
     final ccOC = cue - obj;
@@ -1204,7 +1204,7 @@ class _TrianglePainter extends CustomPainter {
       canvas.drawCircle(ccHit, 4,
           Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1);
       _drawLabel(canvas, 'CG切点', ccHit + const Offset(0, -14),
-          const Color(0xFFE91E63).withValues(alpha: 0.7), 9);
+          const Color(0xFFE91E63).withValues(alpha: 0.7), 10);
     }
 
     // 2. Edge line (parallel to C→G, offset by r, full canvas width)
@@ -1292,10 +1292,10 @@ class _TrianglePainter extends CustomPainter {
             final eoNorm = eoDir / eoDist;
             final extEnd = objEntryPt + eoNorm * (w * 0.3);
             _drawDashed(canvas, objEntryPt, extEnd,
-                const Color(0xFF00BCD4).withValues(alpha: 0.2), 1.0);
+                const Color(0xFF00BCD4).withValues(alpha: 0.4), 1.0);
           }
           _drawLabel(canvas, '进球面', objEntryPt + const Offset(0, 14),
-              const Color(0xFF00BCD4), 9);
+              const Color(0xFF00BCD4), 10);
         }
       }
     }
@@ -1988,8 +1988,8 @@ class _PocketEdgeAimingPainter extends CustomPainter {
     canvas.drawCircle(jaw2, 4,
         Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
 
-    _drawLabel(canvas, 'J1', jaw1 + const Offset(-12, -10), const Color(0xFF8D6E63), 9);
-    _drawLabel(canvas, 'J2', jaw2 + const Offset(10, 10), const Color(0xFF8D6E63), 9);
+    _drawLabel(canvas, 'J1', jaw1 + const Offset(-12, -10), const Color(0xFF8D6E63), 10);
+    _drawLabel(canvas, 'J2', jaw2 + const Offset(10, 10), const Color(0xFF8D6E63), 10);
 
     // Pocket center label
     _drawLabel(canvas, 'P', pocket + const Offset(10, -8), const Color(0xFFFFEB3B), 12, bold: true);
@@ -2405,7 +2405,7 @@ class _CTEAimingPainter extends CustomPainter {
     canvas.drawCircle(objFarEdge, 4,
         Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
     _drawLabel(canvas, 'Edge', objFarEdge + Offset(-opNorm.dx * 16, -opNorm.dy * 16),
-        const Color(0xFF26C6DA), 9);
+        const Color(0xFF26C6DA), 10);
 
     // ---- Alignment point on OB (A/B/C) ----
     final opPerp = Offset(-opNorm.dy, opNorm.dx);
@@ -2454,7 +2454,7 @@ class _CTEAimingPainter extends CustomPainter {
     canvas.drawCircle(bridgePos, 5,
         Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
     _drawLabel(canvas, '架桥', bridgePos + Offset(aimPerp.dx * sideSign * 18, aimPerp.dy * sideSign * 18),
-        const Color(0xFFFF6600), 9);
+        const Color(0xFFFF6600), 10);
 
     // ---- Post-pivot cue line: pivot around bridge back to CB center ----
     // After pivot: line from bridge through cue ball center and beyond
@@ -2717,7 +2717,7 @@ class _BankMidpointPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final r = math.min(w, h) * 0.03;
+    final r = math.min(w, h) * 0.038;
 
     // Rail in the middle
     final railY = h * 0.5;
@@ -2756,7 +2756,7 @@ class _BankMidpointPainter extends CustomPainter {
 
     // ---- Projection line from midpoint to rail (vertical dashed) ----
     _drawDashed(canvas, midpoint, railAimPoint,
-        Paint()..color = Colors.white24..strokeWidth = 1);
+        Paint()..color = Colors.white54..strokeWidth = 1);
 
     // ---- Aim point on rail ----
     canvas.drawCircle(railAimPoint, 6, Paint()..color = const Color(0xFFFF9800));
@@ -2802,11 +2802,11 @@ class _BankMidpointPainter extends CustomPainter {
     if (aimDiff > 2) {
       _drawLabel(canvas, '偏差 ${(aimDiff / r).toStringAsFixed(1)}R',
           Offset((railAimPoint.dx + mirrorAimPt.dx) / 2, railY + r * 3),
-          Colors.white54, 9);
+          Colors.white54, 10);
     }
 
     _drawLabel(canvas, '⚠ 近似法，有偏差',
-        Offset(w * 0.5, h * 0.92), const Color(0xFFFF9800), 9);
+        Offset(w * 0.5, h * 0.92), const Color(0xFFFF9800), 10);
   }
 
   void _drawDashed(Canvas canvas, Offset from, Offset to, Paint paint) {
@@ -3489,7 +3489,7 @@ class _BankCompensationPainter extends CustomPainter {
     for (int i = 0; i <= 8; i++) {
       final dx = i * diamondSpacing;
       canvas.drawCircle(Offset(dx, railY - 3), 3,
-          Paint()..color = Colors.white24);
+          Paint()..color = Colors.white54);
     }
 
     // Object ball
@@ -3527,7 +3527,7 @@ class _BankCompensationPainter extends CustomPainter {
     canvas.drawCircle(mirrorContact, 4,
         Paint()..color = const Color(0xFF42A5F5)..style = PaintingStyle.stroke..strokeWidth = 1.5);
     _drawLabel(canvas, '镜像点', mirrorContact + const Offset(0, 16),
-        const Color(0xFF42A5F5), 9);
+        const Color(0xFF42A5F5), 10);
 
     // Mirror aim line (faint dashed)
     _drawDashed(canvas, obj, mirrorContact,
@@ -3559,7 +3559,7 @@ class _BankCompensationPainter extends CustomPainter {
       Paint()..color = const Color(0xFFFF9800)..strokeWidth = 2,
     );
     _drawLabel(canvas, '+1/3', Offset((mirrorContact.dx + compensatedContact.dx) / 2, arrowY + 12),
-        const Color(0xFFFF9800), 9, bold: true);
+        const Color(0xFFFF9800), 10, bold: true);
 
     // ---- Actual ball path with compensation (green) ----
     canvas.drawLine(obj, compensatedContact,
@@ -3803,7 +3803,7 @@ class _BankDiamondPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final r = math.min(w, h) * 0.025;
+    final r = math.min(w, h) * 0.035;
 
     // Draw table outline
     final tableRect = Rect.fromLTRB(w * 0.05, h * 0.08, w * 0.95, h * 0.92);
@@ -3830,13 +3830,13 @@ class _BankDiamondPainter extends CustomPainter {
     for (int i = 0; i <= 8; i++) {
       final x = leftRailX + i * diamondSpacingX;
       canvas.drawCircle(Offset(x, topRailY), 4, Paint()..color = Colors.white38);
-      _drawLabel(canvas, '$i', Offset(x, topRailY - 12), Colors.white54, 9);
+      _drawLabel(canvas, '$i', Offset(x, topRailY - 12), Colors.white54, 10);
     }
     // Bottom rail diamonds
     for (int i = 0; i <= 8; i++) {
       final x = leftRailX + i * diamondSpacingX;
       canvas.drawCircle(Offset(x, botRailY), 4, Paint()..color = Colors.white38);
-      _drawLabel(canvas, '$i', Offset(x, botRailY + 12), Colors.white54, 9);
+      _drawLabel(canvas, '$i', Offset(x, botRailY + 12), Colors.white54, 10);
     }
     // Left rail diamonds
     for (int i = 0; i <= 4; i++) {
@@ -5031,7 +5031,7 @@ class _CushionBallAimingPainter extends CustomPainter {
           ..strokeWidth = 1,
       );
       _drawLabel(canvas, '库边干涉区',
-          Offset(objX, railY + (r + gap) / 2), const Color(0xFFFF9800), 8);
+          Offset(objX, railY + (r + gap) / 2), const Color(0xFFFF9800), 10);
     }
 
     // ---- Ball-to-pocket line (cyan dashed) ----
@@ -5046,6 +5046,8 @@ class _CushionBallAimingPainter extends CustomPainter {
     canvas.drawCircle(contactPoint, 4, Paint()..color = const Color(0xFFFF5722));
     canvas.drawCircle(contactPoint, 4,
         Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    _drawLabel(canvas, '接触点', contactPoint + const Offset(12, 10),
+        const Color(0xFFFF5722), 10, bold: true);
 
     // ---- "Exposed crescent" — the part of ball visible above rail ----
     if (gapRatio < 0.5) {
@@ -5092,10 +5094,10 @@ class _CushionBallAimingPainter extends CustomPainter {
     // ---- Gap indicator ----
     if (gapRatio >= 0.05) {
       _drawLabel(canvas, '间距 ${(gapRatio * 100).toStringAsFixed(0)}%',
-          Offset(objX - r * 4, objY - r - 4), Colors.white38, 9);
+          Offset(objX - r * 4, objY - r - 4), Colors.white38, 10);
     } else {
       _drawLabel(canvas, '贴库',
-          Offset(objX - r * 3, objY - r - 4), const Color(0xFFFF9800), 9, bold: true);
+          Offset(objX - r * 3, objY - r - 4), const Color(0xFFFF9800), 10, bold: true);
     }
   }
 
@@ -6250,7 +6252,7 @@ class _HighMidLowPainter extends CustomPainter {
           ..strokeWidth = 4
           ..strokeCap = StrokeCap.round);
     _drawLabel(canvas, '击球点', hitSpot + Offset(14, 0),
-        const Color(0xFFFF9800), 9, bold: true);
+        const Color(0xFFFF9800), 10, bold: true);
 
     canvas.drawCircle(cue, r, Paint()..color = const Color(0xEEFFFFFF));
     canvas.drawCircle(cue, r,
@@ -6269,6 +6271,8 @@ class _HighMidLowPainter extends CustomPainter {
     _drawLabel(canvas, '目标球', obj + Offset(r + 8, -6), const Color(0xFFFFEB3B), 10);
 
     canvas.drawCircle(pocket, r * 1.2, Paint()..color = const Color(0xFF263238));
+    _drawLabel(canvas, 'P', pocket + const Offset(0, -14),
+        const Color(0xFFFFEB3B), 10, bold: true);
     _drawDashed(canvas, obj, pocket,
         Paint()..color = const Color(0xFFFFEB3B).withValues(alpha: 0.35)..strokeWidth = 1.2);
   }
