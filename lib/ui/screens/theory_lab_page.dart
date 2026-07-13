@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import 'angle_tool_lab.dart';
+
 // ---------------------------------------------------------------------------
 // Category & item data model
 // ---------------------------------------------------------------------------
@@ -83,6 +85,12 @@ final List<_LabCategory> _categories = [
         subtitle: '薄切法、挤库法（先碰库）',
         icon: Icons.vertical_align_center,
         builder: () => const _CushionBallHub(),
+      ),
+      _LabItem(
+        title: '角度分析工具',
+        subtitle: '拖动母球/目标球，实时显示所有角度与距离',
+        icon: Icons.architecture,
+        builder: () => const AngleToolLab(),
       ),
     ],
   ),
