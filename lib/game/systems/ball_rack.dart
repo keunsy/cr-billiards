@@ -348,7 +348,7 @@ class BallRack {
 
     for (var row = 0; row < 5; row++) {
       for (var col = 0; col <= row; col++) {
-        final x = TableConstants.footSpotX - row * rowSpacing;
+        final x = TableConstants.footSpotX + row * rowSpacing;
         final y = (col - row / 2.0) * d;
         positions.add(Vector2(x, y));
       }

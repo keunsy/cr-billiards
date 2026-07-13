@@ -62,9 +62,15 @@ final List<_LabCategory> _categories = [
       ),
       _LabItem(
         title: 'CTE 瞄准系统',
-        subtitle: 'Center-To-Edge 对齐+旋转法',
+        subtitle: 'Center-To-Edge 瞄准点+偏移+转回中心',
         icon: Icons.pivot_table_chart,
         builder: () => const _CTEAimingLab(),
+      ),
+      _LabItem(
+        title: '平行线瞄准法',
+        subtitle: '接触点→接触点平行移动，与假想球等价',
+        icon: Icons.linear_scale,
+        builder: () => const _ParallelLinesAimingLab(),
       ),
       _LabItem(
         title: '翻袋瞄准法',
@@ -500,13 +506,18 @@ class _GhostBallLabState extends State<_GhostBallLab> {
               '原理：在目标球 O 与袋口 P 的连线延长线上，'
               '紧贴 O 放一个"假想球 G"。母球瞄准 G 的中心出杆即可。\n\n'
               '常见问题与解决：\n'
-              '1. 长距离球视觉失真 — 假想球在远处看起来"变形"，'
+              '1. 球体立体感偏差（GBD） — 假想球是个三维球，'
+              '但我们从球杆高度看到的是它的"投影"。由于球面弧度，'
+              '假想球的中心在视觉上会偏离实际位置，导致"看薄"。'
+              '这是所有接触点/假想球方法的通病，幸运的是碰撞偏转'
+              '（Throw）会部分抵消此偏差\n'
+              '2. 长距离球视觉失真 — 假想球在远处看起来"变形"，'
               '可配合"突出点法"或"CTE系统"辅助定位\n'
-              '2. 薄球（大切角 >45°）— 假想球偏移很大，'
-              '容易高估/低估接触点，建议用角度瞄准法辅助\n'
-              '3. 偏差累积 — 任何微小的瞄准偏差都被放大，'
+              '3. 薄球（大切角 >45°）— 假想球偏移很大，'
+              '容易高估/低估接触点，建议用角度瞄准法或平行线法辅助\n'
+              '4. 偏差累积 — 任何微小的瞄准偏差都被放大，'
               '长台更需重视瞄准姿势（下巴贴杆、视线对齐）\n'
-              '4. 不适合翻袋 — 翻袋球用镜像法/菱形系统更直观',
+              '5. 不适合翻袋 — 翻袋球用镜像法/菱形系统更直观',
               style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.6),
             ),
           ]),
@@ -2206,7 +2217,7 @@ class _CTEAimingLabState extends State<_CTEAimingLab> with SingleTickerProviderS
           labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
           unselectedLabelStyle: const TextStyle(fontSize: 13),
           dividerHeight: 0,
-          tabs: const [Tab(text: '经典 CTE'), Tab(text: 'Pro One CTE')],
+          tabs: const [Tab(text: 'CTE 基础'), Tab(text: 'CTE 进阶（Pro One）')],
           onTap: (_) => setState(() {}),
         ),
         const SizedBox(height: 8),
@@ -2249,59 +2260,185 @@ class _CTEAimingLabState extends State<_CTEAimingLab> with SingleTickerProviderS
   }
 
   List<Widget> _buildClassicContent() {
-    String alignment;
-    String desc;
-    if (_cutAngleDeg <= 20) {
-      alignment = 'A 点（目标球靠近白球一侧的 1/4 处）';
-      desc = '小角度，白球打在目标球比较厚的位置';
-    } else if (_cutAngleDeg <= 35) {
-      alignment = 'B 点（目标球的正中间位置）';
-      desc = '中等角度，打半球厚度';
-    } else {
-      alignment = 'C 点（目标球靠近袋口一侧的 1/4 处）';
-      desc = '大角度，白球打在目标球比较薄的位置';
-    }
+    final thickness = math.cos(_cutAngleDeg * math.pi / 180);
+    final pct = (thickness * 100).toStringAsFixed(0);
     return [
       const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _LegendItem(color: Color(0xFF26C6DA), label: '参考线（白球中心 → 目标球背对袋口的边缘）'),
-          _LegendItem(color: Color(0xFFFF6600), label: 'A / B / C 对齐参考点'),
-          _LegendItem(color: Color(0xFF66BB6A), label: '实际出杆方向'),
-          _LegendItem(color: Color(0xFFFFEB3B), label: '进球路线（袋口方向）'),
+          _LegendItem(color: Color(0xFF26C6DA), label: 'CTE 参考线'),
+          _LegendItem(color: Color(0xFF66BB6A), label: '最终出杆方向'),
+          _LegendItem(color: Color(0xFFFFEB3B), label: '进球路线'),
+          _LegendItem(color: Color(0xFF9C27B0), label: '假想球位置'),
         ],
       ),
       const SizedBox(height: 12),
+
+      // ---- 1. 什么是 CTE ----
       _infoCard(
-        '完整操作流程',
-        '① 选线路：先看袋口，选最容易进的那个袋。'
-        '想象一条从袋口穿过目标球中心的线——这就是进球线。\n'
-        '   图中黄色虚线 O→P 就是进球线。\n\n'
-        '② 站位：走到白球正后方，让身体对准进球方向。\n\n'
-        '③ 建立参考线：低头沿球杆方向看，'
-        '找到目标球上背对袋口的那个边缘'
-        '（如果袋口在目标球右边，就找目标球的左边缘）。'
-        '然后让白球的正中心对准这个边缘点。\n'
-        '   → 图中青色线就是这条参考线。\n\n'
-        '④ 读参考点：保持参考线不动，同时注意白球面向袋口一侧的边缘'
-        '（和参考线相对的另一边），'
-        '看它落在了目标球身上的什么位置（A/B/C）。\n\n'
-        '⑤ 出杆：确认对齐后，正常出杆。',
+        '什么是 CTE？',
+        'CTE 全称 Center To Edge（中心对边缘），'
+        '由 Stan Shuffett 在前人（Hal Houle）基础上发展并系统化。\n\n'
+        '它是一套"视觉感知 + 半皮头偏移 + 转回中心"的出杆流程，'
+        '用来代替传统的"假想球"瞄准法。\n\n'
+        '核心优势：\n'
+        '• 不需要在脑中想象一个看不见的"假想球"\n'
+        '• 不需要估算接触点在目标球上的精确位置\n'
+        '• 只需要识别 3 个固定参考点（A/B/C），配合一个固定偏移量\n'
+        '• 操作步骤完全标准化，每一杆的流程都一样\n\n'
+        '局限性：\n'
+        '• 标准 CTE 覆盖 0°-45° 的切球（占实战中绝大多数球）\n'
+        '• 超过 45° 的极薄球需要额外处理（如 edge to 1/8）\n'
+        '• 需要大量练习来建立肌肉记忆，不是"学了就会"',
       ),
       const SizedBox(height: 8),
+
+      // ---- 2. 目标球上的参考点 ----
       _infoCard(
-        '三个参考点',
-        '• A 点（目标球身上靠近白球一侧的 1/4 处）\n'
-        '  → 小切角（15°-20°），白球打得比较厚\n\n'
-        '• B 点（目标球的正中间）\n'
-        '  → 中等切角（20°-35°），打半球厚度\n\n'
-        '• C 点（目标球身上靠近袋口一侧的 1/4 处）\n'
-        '  → 大切角（35°-50°），白球打得比较薄\n\n'
-        '优点：只需记 3 个位置，简单好上手。\n'
-        '缺点：25° 和 30° 都选 B，但实际厚度不同。',
+        '目标球上的参考点（见左图俯视图）',
+        '把目标球的直径四等分，得到 5 个点：\n\n'
+        '中心 ── A ── B ── C ── 边缘\n'
+        ' 0°     15°   30°   45°   >45°\n\n'
+        '具体位置：\n'
+        '• 中心 = 目标球正中（直球，0° 切角）\n'
+        '• A 点 = 从中心到边缘的 1/4 处（15° 切角）\n'
+        '• B 点 = 从中心到边缘的 2/4 处（30° 切角）\n'
+        '• C 点 = 从中心到边缘的 3/4 处（45° 切角）\n'
+        '• 边缘 = 目标球最外侧（>45° 极薄球）\n\n'
+        '每个 1/4 间距 ≈ 9/16 英寸 ≈ 14mm（标准 57mm 球）。\n\n'
+        '重要：这些点分布在目标球的赤道线上，'
+        '方向是垂直于进球线（袋口方向）的。\n\n'
+        '左切和右切的标记方向相反：\n'
+        '• 左切球：从球心向左依次是 A、B、C\n'
+        '• 右切球：从球心向右依次是 A、B、C\n'
+        'A 总是离中心最近（切球方向的内侧），'
+        'C 总是离中心最远（切球方向的外侧）。',
       ),
       const SizedBox(height: 8),
-      _infoCard('当前角度 → $alignment', desc),
+
+      // ---- 3. 两个视觉感知 ----
+      _infoCard(
+        'CTE 的两个视觉感知',
+        'CTE 的核心是同时建立两个视觉对齐关系：\n\n'
+        '感知 ①：CTE 感知\n'
+        '  白球的中心线 对准 目标球的边缘\n'
+        '  即 Center（白球中心）To Edge（目标球边缘）\n'
+        '  这就是 CTE 名字的由来。\n\n'
+        '感知 ②：Edge to A/B/C 感知\n'
+        '  白球的另一侧边缘 对准 目标球上的 A、B 或 C 点\n'
+        '  具体对准哪个点取决于切球角度。\n\n'
+        '这两个感知需要同时成立。你站立时（还没趴下），'
+        '找到一个位置，让你的眼睛能同时看到这两个对齐关系。\n'
+        '此时白球在你的视野中变成一个"固定白球"——'
+        '它有一条中心线和两个可见的边缘。\n\n'
+        '举例 · 30° 左切球：\n'
+        '  感知 ①：白球中心 对准 目标球右边缘\n'
+        '  感知 ②：白球左边缘 对准 目标球上的 B 点\n'
+        '  两个感知同时成立时，你就找到了正确的站位。',
+      ),
+      const SizedBox(height: 8),
+
+      // ---- 4. 完整操作流程 ----
+      _infoCard(
+        '完整操作流程（5 步）',
+        '第 1 步 · 读球\n'
+        '站在桌边，先确定进球路线：\n'
+        '  目标球 → 袋口的连线（图中黄色虚线）\n'
+        '判断这大致是多少度的切球，选定用 A、B 还是 C 点。\n'
+        '不需要精确度数，靠经验判断即可。\n\n'
+        '第 2 步 · 建立双重感知\n'
+        '走到白球后方，站直（还不要趴下），调整你的站位：\n'
+        '  • 一只眼看：白球中心 → 目标球边缘（CTE 感知）\n'
+        '  • 同时看：白球另一侧边缘 → 目标球 A/B/C 点\n'
+        '当两个感知同时对齐时，你就建立了"固定白球"。\n'
+        '此时白球的中心线和两侧边缘在你视野中都是清晰的。\n\n'
+        '第 3 步 · 趴下对准\n'
+        '保持住这个视觉感知，慢慢弯腰趴到出杆位置。\n'
+        '把球杆沿着"白球中心 → 目标球瞄准点"的方向放好。\n'
+        '这就是 CTE 参考线（图中青色线）。\n'
+        '⚠️ 此时的球杆方向还不是最终出杆方向。\n\n'
+        '第 4 步 · 偏移半皮头\n'
+        '保持球杆方向不变，只平移杆头：\n'
+        '  • 从白球中心向切球方向移动半个皮头（约 6mm）\n'
+        '  • 左切球 → 杆头向左平移\n'
+        '  • 右切球 → 杆头向右平移\n'
+        '偏移量始终是半皮头，不会因角度不同而改变。\n\n'
+        '偏移方向（内侧/外侧）决定了球的厚薄微调：\n'
+        '  • 向"内侧"偏移（靠近切球方向）→ 使球打得更薄\n'
+        '  • 向"外侧"偏移（远离切球方向）→ 使球打得更厚\n\n'
+        '第 5 步 · 转回中心，出杆\n'
+        '以后手（握杆手的位置）为固定支点，不要移动后手：\n'
+        '  杆头从偏移位置 转回 白球正中心\n'
+        '这个转动会自然地改变球杆的瞄准方向。\n'
+        '当杆头回到白球正中心的那一刻，'
+        '球杆已经自动指向了正确的出杆角度（图中绿色线）。\n\n'
+        '确认杆头在白球中心，平稳运杆，出杆。\n\n'
+        '注意：转回的过程非常小幅（半个皮头 ≈ 6mm），'
+        '看起来几乎不像在"转"，更像是微调。'
+        '这也是为什么外人很难看出 CTE 使用者在做什么。',
+      ),
+      const SizedBox(height: 8),
+
+      // ---- 5. 编号速记法 ----
+      _infoCard(
+        '实战速记（编号系统）',
+        '打球时不要在脑子里说"30度左切外侧半皮头转回"这种长句。\n'
+        '用编号代替，简化思维负担：\n\n'
+        '编号 1 = 15° 外侧偏移（直球和近直球也用此编号）\n'
+        '编号 2 = 15° 内侧偏移\n'
+        '编号 3 = 30° 内侧偏移\n'
+        '编号 4 = 45° 外侧偏移\n'
+        '编号 5 = 45° 内侧偏移\n\n'
+        '补充说明：\n'
+        '• 编号 2 和编号 3（内侧 15° 与内侧 30°）效果接近，\n'
+        '  可互换使用，凭个人习惯选择。\n'
+        '• 直球用编号 1（15° 外侧偏移）。\n'
+        '• 45° 球没有 CTE 感知（白球中心已经对不上目标球边缘），\n'
+        '  只使用 Edge to C 感知。\n'
+        '• 超过 45° 可用 Edge to 1/8（目标球边缘再往外 1/8 处）。\n\n'
+        '练习时，看到球就在心里说"这是 3"或"这是 1"，'
+        '然后执行对应的标准流程。\n'
+        '熟练后，整个判断 + 出杆只需要几秒钟。',
+      ),
+      const SizedBox(height: 8),
+
+      // ---- 6. 当前设置 ----
+      _infoCard(
+        '当前设置：切球角 ${_cutAngleDeg.toStringAsFixed(0)}°',
+        '${_cutAngleDeg < 8
+            ? "几乎直球 → 编号 1\n\n"
+              "使用 A 点 + 外侧半皮头偏移。\n"
+              "球杆对准白球中心 → 目标球 A 点，\n"
+              "杆头向外侧偏移半皮头，然后转回中心出杆。\n"
+              "出杆方向几乎等于参考线方向。"
+            : _cutAngleDeg < 23
+            ? "约 15° 厚球 → 编号 1 或 2\n\n"
+              "使用 A 点（内侧 1/4 处）。\n"
+              "• 编号 1：外侧偏移 → 球打得更厚\n"
+              "• 编号 2：内侧偏移 → 球打得更薄\n"
+              "根据实际角度微调选择。\n"
+              "转回角度很小，出杆方向接近参考线。"
+            : _cutAngleDeg < 38
+            ? "约 30° 中等切球 → 编号 3\n\n"
+              "使用 B 点（边缘中心处）。\n"
+              "内侧偏移半皮头，转回中心。\n"
+              "转回后出杆方向与参考线有明显角度差。\n\n"
+              "提示：编号 2（A 点内侧）和编号 3（B 点内侧）\n"
+              "效果接近，可根据个人习惯选择。"
+            : _cutAngleDeg < 50
+            ? "约 45° 较薄球 → 编号 4 或 5\n\n"
+              "使用 C 点（外侧 3/4 处）。\n"
+              "注意：45° 时白球中心已无法对准目标球边缘，\n"
+              "CTE 感知消失，只依靠 Edge to C 感知。\n"
+              "• 编号 4：外侧偏移 → 稍厚\n"
+              "• 编号 5：内侧偏移 → 稍薄"
+            : "超过 45° 极薄球\n\n"
+              "标准 CTE 的 A/B/C 点不再适用。\n"
+              "可尝试 Edge to 1/8（目标球边缘外 1/8 处），\n"
+              "但 CTE 在此范围的精度有限。\n"
+              "建议配合其他瞄准方法（如分数球）辅助。"
+        }',
+      ),
     ];
   }
 
@@ -2400,168 +2537,114 @@ class _CTEAimingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final r = math.min(w, h) * 0.042;
+    final r = math.min(w, h) * 0.055;
 
-    // Pocket at upper-right area
-    final pocket = Offset(w * 0.82, h * 0.15);
-    // Object ball in center
-    final obj = Offset(w * 0.55, h * 0.42);
+    // Background
+    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF1B5E20).withValues(alpha: 0.3));
 
+    // ===== LEFT HALF: Top-down view of OB with 5 aiming spots =====
+    final obCenter = Offset(w * 0.22, h * 0.45);
+    final obR = r * 2.5;
+    // Object ball
+    canvas.drawCircle(obCenter, obR, Paint()..color = const Color(0xFFFFEB3B));
+    canvas.drawCircle(obCenter, obR, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 2);
+    // Center line (horizontal = pocket direction)
+    canvas.drawLine(obCenter + Offset(-obR, 0), obCenter + Offset(obR, 0),
+        Paint()..color = Colors.white38..strokeWidth = 0.8);
+    // Spots: C B A CTR A B C
+    const spots = [
+      (-0.75, 'C'), (-0.5, 'B'), (-0.25, 'A'),
+      (0.0, '中'),
+      (0.25, 'A'), (0.5, 'B'), (0.75, 'C'),
+    ];
+    const spotAngles = ['45°', '30°', '15°', '', '15°', '30°', '45°'];
+    for (var i = 0; i < spots.length; i++) {
+      final (frac, label) = spots[i];
+      final x = obCenter.dx + frac * obR;
+      final spotColor = label == '中' ? Colors.white60 : (frac.abs() < 0.3 ? const Color(0xFF66BB6A) : frac.abs() < 0.6 ? const Color(0xFF26C6DA) : const Color(0xFFFF6600));
+      canvas.drawCircle(Offset(x, obCenter.dy), 3, Paint()..color = spotColor);
+      _drawLabel(canvas, label, Offset(x - 4, obCenter.dy + 8), spotColor, 9, bold: true);
+      if (spotAngles[i].isNotEmpty) {
+        _drawLabel(canvas, spotAngles[i], Offset(x - 8, obCenter.dy - 16), spotColor, 8);
+      }
+    }
+    _drawLabel(canvas, '目标球俯视图 — 瞄准点位置', Offset(w * 0.05, h * 0.08), Colors.white60, 10);
+    _drawLabel(canvas, '← 左切                  右切 →',
+        Offset(obCenter.dx - obR, obCenter.dy + obR + 10), Colors.white38, 9);
+    _drawLabel(canvas, '← 袋口方向', Offset(obCenter.dx - obR - 35, obCenter.dy - 4), Colors.white38, 8);
+
+    // Highlight current angle's spot
+    final cutRad = cutAngleDeg * math.pi / 180;
+    final spotFrac = (cutAngleDeg / 45.0).clamp(0.0, 1.0) * 0.75;
+    final currentSpotX = obCenter.dx + spotFrac * obR;
+    canvas.drawCircle(Offset(currentSpotX, obCenter.dy), 6,
+        Paint()..color = const Color(0xFFFF5722).withValues(alpha: 0.6)..style = PaintingStyle.stroke..strokeWidth = 2);
+
+    // ===== RIGHT HALF: Shot diagram with cue ball, OB, pocket =====
+    final pocket = Offset(w * 0.92, h * 0.10);
+    final obj = Offset(w * 0.65, h * 0.50);
     final op = pocket - obj;
     final opNorm = op / op.distance;
     final ghost = obj - opNorm * 2 * r;
 
-    // Place cue ball based on cut angle
-    final vpDir = pocket - ghost;
-    final vpNorm = vpDir.distance > 0 ? vpDir / vpDir.distance : Offset.zero;
-    final vpAngle = math.atan2(vpNorm.dy, vpNorm.dx);
-    final targetRad = math.pi - cutAngleDeg * math.pi / 180;
-    final cAngle = vpAngle - targetRad;
-    final cDir = Offset(math.cos(cAngle), math.sin(cAngle));
-    final cueDist = w * 0.38;
-    final cue = ghost + cDir * cueDist;
-
-    // Direction from cue to ghost (standard aim)
+    final vpAngle = math.atan2(opNorm.dy, opNorm.dx);
+    final cAngle = vpAngle - (math.pi - cutRad);
+    final cueDist = w * 0.28;
+    final cue = ghost + Offset(math.cos(cAngle), math.sin(cAngle)) * cueDist;
     final aimDir = ghost - cue;
     final aimNorm = aimDir.distance > 0 ? aimDir / aimDir.distance : Offset.zero;
 
-    // ---- Background ----
-    canvas.drawRect(Offset.zero & size,
-        Paint()..color = const Color(0xFF1B5E20).withValues(alpha: 0.3));
+    // O→P dashed
+    _drawDashed(canvas, obj, pocket, Paint()..color = const Color(0xAAFFEB3B)..strokeWidth = 1.2);
+    canvas.drawCircle(pocket, r * 1.0, Paint()..color = const Color(0xFF263238));
 
-    // ---- Pocket ----
-    canvas.drawCircle(pocket, r * 1.4, Paint()..color = const Color(0xFF263238));
-    _drawLabel(canvas, 'P', pocket + const Offset(10, -8), const Color(0xFFFFEB3B), 11, bold: true);
-
-    // ---- O→P line ----
-    _drawDashed(canvas, obj, pocket,
-        Paint()..color = const Color(0xAAFFEB3B)..strokeWidth = 1.2);
-
-    // ---- Object ball ----
+    // Object ball
     canvas.drawCircle(obj, r, Paint()..color = const Color(0xFFFFEB3B));
-    canvas.drawCircle(obj, r,
-        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
-    _drawLabel(canvas, 'O', obj + Offset(0, r + 14), const Color(0xFFFFEB3B), 11, bold: true);
+    canvas.drawCircle(obj, r, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
 
-    // ---- Ghost ball (faint reference) ----
-    canvas.drawCircle(ghost, r,
-        Paint()..color = const Color(0x339C27B0));
-    canvas.drawCircle(ghost, r,
-        Paint()..color = const Color(0xFF9C27B0)..style = PaintingStyle.stroke..strokeWidth = 1);
-    _drawLabel(canvas, 'G', ghost + Offset(0, r + 14), const Color(0xFF9C27B0), 10);
+    // Ghost ball
+    canvas.drawCircle(ghost, r, Paint()..color = const Color(0x229C27B0));
+    canvas.drawCircle(ghost, r, Paint()..color = const Color(0xFF9C27B0)..style = PaintingStyle.stroke..strokeWidth = 1);
 
-    // ---- Cue ball ----
+    // Cue ball
     canvas.drawCircle(cue, r, Paint()..color = const Color(0xEEFFFFFF));
-    canvas.drawCircle(cue, r,
-        Paint()..color = const Color(0xFFBBBBBB)..style = PaintingStyle.stroke..strokeWidth = 1.2);
-    _drawLabel(canvas, 'C', cue + Offset(0, r + 14), Colors.white, 11, bold: true);
+    canvas.drawCircle(cue, r, Paint()..color = const Color(0xFFBBBBBB)..style = PaintingStyle.stroke..strokeWidth = 1.2);
 
-    // ---- CTE Line: cue ball center → object ball far edge ----
-    // The "far edge" is the edge of the object ball away from the pocket.
+    // CTE reference line (cue center → OB far edge)
     final objFarEdge = obj - opNorm * r;
     final cteDir = objFarEdge - cue;
     final cteNorm = cteDir.distance > 0 ? cteDir / cteDir.distance : Offset.zero;
-    final cteLineEnd = cue + cteNorm * (cteDir.distance + r * 4);
-    canvas.drawLine(cue, cteLineEnd,
+    canvas.drawLine(cue, cue + cteNorm * (cteDir.distance + r * 2),
         Paint()..color = const Color(0xFF26C6DA).withValues(alpha: 0.8)..strokeWidth = 1.8);
-    // Mark the far edge point
-    canvas.drawCircle(objFarEdge, 4, Paint()..color = const Color(0xFF26C6DA));
-    canvas.drawCircle(objFarEdge, 4,
-        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
-    _drawLabel(canvas, 'Edge', objFarEdge + Offset(-opNorm.dx * 16, -opNorm.dy * 16),
-        const Color(0xFF26C6DA), 10);
+    canvas.drawCircle(objFarEdge, 3, Paint()..color = const Color(0xFF26C6DA));
 
-    // ---- Alignment point on OB (A/B/C) ----
-    final opPerp = Offset(-opNorm.dy, opNorm.dx);
-    final alignSideSign = _dot(cue - obj, opPerp) > 0 ? 1.0 : -1.0;
-    Offset alignPt;
-    String alignLabel;
-    if (cutAngleDeg <= 20) {
-      alignPt = obj + opPerp * alignSideSign * r * 0.5;
-      alignLabel = 'A';
-    } else if (cutAngleDeg <= 35) {
-      alignPt = obj;
-      alignLabel = 'B';
-    } else {
-      alignPt = obj - opPerp * alignSideSign * r * 0.5;
-      alignLabel = 'C';
-    }
-    canvas.drawCircle(alignPt, 3.5, Paint()..color = const Color(0xFFFF6600));
-    canvas.drawCircle(alignPt, 3.5,
-        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.2);
-    _drawLabel(canvas, alignLabel, alignPt + Offset(opPerp.dx * 12, opPerp.dy * 12 - 6),
-        const Color(0xFFFF6600), 10, bold: true);
+    // Actual shot line (green)
+    canvas.drawLine(cue, cue + aimNorm * (aimDir.distance + r * 4),
+        Paint()..color = const Color(0xFF66BB6A).withValues(alpha: 0.8)..strokeWidth = 2);
 
-    // ---- Cue ball inner edge ----
-    // The "inner edge" of the cue ball (side facing the cut direction)
-    final aimPerp = Offset(-aimNorm.dy, aimNorm.dx);
-    final sideSign = _dot(opPerp, aimPerp) > 0 ? 1.0 : -1.0;
-    final cueInnerEdge = cue + aimPerp * sideSign * r;
+    // Angle arc
+    final gAwayFromP = ghost - pocket;
+    final gAwayNorm = gAwayFromP.distance > 0 ? gAwayFromP / gAwayFromP.distance : Offset.zero;
+    final gToC = cue - ghost;
+    final gToCNorm = gToC.distance > 0 ? gToC / gToC.distance : Offset.zero;
+    final arcStart = math.atan2(gAwayNorm.dy, gAwayNorm.dx);
+    final arcEnd = math.atan2(gToCNorm.dy, gToCNorm.dx);
+    var sweep = arcEnd - arcStart;
+    if (sweep > math.pi) sweep -= 2 * math.pi;
+    if (sweep < -math.pi) sweep += 2 * math.pi;
+    final arcR = r * 1.8;
+    canvas.drawArc(Rect.fromCircle(center: ghost, radius: arcR), arcStart, sweep, false,
+        Paint()..color = const Color(0xFF26C6DA)..style = PaintingStyle.stroke..strokeWidth = 2);
+    final midAng = arcStart + sweep / 2;
+    _drawLabel(canvas, '${cutAngleDeg.toStringAsFixed(0)}°',
+        Offset(ghost.dx + (arcR + r * 0.8) * math.cos(midAng), ghost.dy + (arcR + r * 0.8) * math.sin(midAng)),
+        const Color(0xFF26C6DA), 11, bold: true);
 
-    // ---- Pre-pivot cue line: from inner edge of CB to alignment point ----
-    final prePivotDir = alignPt - cueInnerEdge;
-    final prePivotNorm = prePivotDir.distance > 0 ? prePivotDir / prePivotDir.distance : Offset.zero;
-    final prePivotStart = cueInnerEdge - prePivotNorm * r * 3;
-    final prePivotEnd = cueInnerEdge + prePivotNorm * (prePivotDir.distance + r * 5);
-    _drawDashed(canvas, prePivotStart, prePivotEnd,
-        Paint()..color = const Color(0xFFFF6600).withValues(alpha: 0.6)..strokeWidth = 1.5);
-
-    // Mark inner edge on cue ball
-    canvas.drawCircle(cueInnerEdge, 3, Paint()..color = const Color(0xFFFF6600));
-
-    // ---- Bridge hand position (half tip offset) ----
-    // Bridge is placed at a fixed distance from cue ball, offset half-tip to the inside
-    final bridgeDist = r * 6;
-    final bridgeCenter = cue + aimNorm * bridgeDist;
-    final halfTipOffset = aimPerp * sideSign * (r * 0.15);
-    final bridgePos = bridgeCenter + halfTipOffset;
-    canvas.drawCircle(bridgePos, 5, Paint()..color = const Color(0xFFFF6600).withValues(alpha: 0.7));
-    canvas.drawCircle(bridgePos, 5,
-        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
-    _drawLabel(canvas, '架桥', bridgePos + Offset(aimPerp.dx * sideSign * 18, aimPerp.dy * sideSign * 18),
-        const Color(0xFFFF6600), 10);
-
-    // ---- Post-pivot cue line: pivot around bridge back to CB center ----
-    // After pivot: line from bridge through cue ball center and beyond
-    final postPivotDir = cue - bridgePos;
-    final postPivotNorm = postPivotDir.distance > 0 ? postPivotDir / postPivotDir.distance : Offset.zero;
-    final postPivotEnd = bridgePos - postPivotNorm * r * 2;
-    final postPivotFar = cue + postPivotNorm * (cueDist * 0.6);
-    canvas.drawLine(postPivotEnd, postPivotFar,
-        Paint()..color = const Color(0xFF66BB6A).withValues(alpha: 0.7)..strokeWidth = 2);
-
-    // ---- Show the actual aim line for comparison (C→G standard) ----
-    final stdAimEnd = cue + aimNorm * cueDist * 0.5;
-    _drawDashed(canvas, cue, stdAimEnd,
-        Paint()..color = const Color(0xFF9C27B0).withValues(alpha: 0.4)..strokeWidth = 1);
-
-    // ---- Angle arc at obj ----
-    final oToP = pocket - obj;
-    final oToPNorm = oToP.distance > 0 ? oToP / oToP.distance : Offset.zero;
-    final oToC = cue - obj;
-    final oToCNorm = oToC.distance > 0 ? oToC / oToC.distance : Offset.zero;
-
-    final arcStartAng = math.atan2(oToPNorm.dy, oToPNorm.dx);
-    final arcEndAng = math.atan2(oToCNorm.dy, oToCNorm.dx);
-    var arcSweep = arcEndAng - arcStartAng;
-    if (arcSweep > math.pi) arcSweep -= 2 * math.pi;
-    if (arcSweep < -math.pi) arcSweep += 2 * math.pi;
-
-    final arcR = r * 1.6;
-    canvas.drawArc(
-      Rect.fromCircle(center: obj, radius: arcR),
-      arcStartAng,
-      arcSweep,
-      false,
-      Paint()..color = const Color(0xFF26C6DA)..style = PaintingStyle.stroke..strokeWidth = 2,
-    );
-    final midArcAng = arcStartAng + arcSweep / 2;
-    final angleLabelPos = Offset(
-      obj.dx + (arcR + r) * math.cos(midArcAng),
-      obj.dy + (arcR + r) * math.sin(midArcAng),
-    );
-    _drawLabel(canvas, '${cutAngleDeg.toStringAsFixed(0)}°', angleLabelPos,
-        const Color(0xFF26C6DA), 13, bold: true);
+    // Labels
+    _drawLabel(canvas, '白球', cue + Offset(-r, r + 8), Colors.white60, 9);
+    _drawLabel(canvas, '目标球', obj + Offset(r + 4, 4), const Color(0xFFFFEB3B), 9);
+    _drawLabel(canvas, '袋口', pocket + const Offset(4, -12), Colors.white38, 9);
+    _drawLabel(canvas, '背面边缘', objFarEdge + Offset(-36, -14), const Color(0xFF26C6DA), 8);
   }
 
   static double _dot(Offset a, Offset b) => a.dx * b.dx + a.dy * b.dy;
@@ -2676,79 +2759,76 @@ class _ProOneCTEPainter extends CustomPainter {
         Paint()..color = const Color(0x669C27B0)..style = PaintingStyle.stroke..strokeWidth = 1);
 
     // ---- Overlap visualization ----
-    // Project cue ball inner edge onto the OB along the CTE line direction
-    final opPerp = Offset(-opNorm.dy, opNorm.dx);
-    final cueSide = _dot(cue - obj, opPerp) > 0 ? 1.0 : -1.0;
-    final cueInnerEdge = cue + Offset(-aimNorm.dy, aimNorm.dx) * cueSide * r;
-
-    // The overlap region: where cue ball "overlaps" the object ball in the CTE view
-    // Overlap = cos(cutAngle) — 1.0 at 0°, 0.0 at 90°
+    // Overlap = cos(cutAngle): 1.0 at 0° (full ball), 0.0 at 90° (miss)
     final overlapFrac = math.cos(cutAngleDeg * math.pi / 180).clamp(0.0, 1.0);
 
-    // Highlight the overlap on the object ball
     if (overlapFrac > 0.02) {
-      final overlapAngleOnOB = math.acos(overlapFrac.clamp(-1.0, 1.0));
-      final nearEdge = obj + opPerp * cueSide * r;
-      final overlapStart = nearEdge;
-      final overlapEnd = obj + opPerp * cueSide * r * (1 - overlapFrac * 2);
+      // The chord cuts the OB at distance (overlapFrac * r) from center,
+      // measured from the "far edge" (the side facing the incoming cue ball).
+      // The "overlap" region is the larger cap on the incoming-ball side.
+      //
+      // Half-angle of the UNCUT (non-overlap) cap:
+      //   halfAngleNotOverlap = acos(overlapFrac)
+      // The overlap cap sweeps 2π - 2*halfAngleNotOverlap = 2*(π - acos(overlapFrac))
+      final halfAngleNotOverlap = math.acos(overlapFrac.clamp(-1.0, 1.0));
+      final overlapSweep = 2 * (math.pi - halfAngleNotOverlap);
 
-      // Draw overlap arc/band on OB
+      // Direction: the overlap region faces TOWARD the cue ball (incoming direction)
+      final incomingAngle = math.atan2(aimNorm.dy, aimNorm.dx);
+
       final overlapPaint = Paint()
-        ..color = const Color(0xFFFF9800).withValues(alpha: 0.45)
+        ..color = const Color(0xFFFF9800).withValues(alpha: 0.40)
         ..style = PaintingStyle.fill;
-      final startAng = math.atan2(opPerp.dy * cueSide, opPerp.dx * cueSide);
+
+      // Draw the overlap cap as a pie sector (close enough for small r)
       canvas.drawArc(
         Rect.fromCircle(center: obj, radius: r),
-        startAng - overlapAngleOnOB,
-        overlapAngleOnOB * 2,
+        incomingAngle - overlapSweep / 2,
+        overlapSweep,
         true,
         overlapPaint,
       );
-      // Outline
       canvas.drawArc(
         Rect.fromCircle(center: obj, radius: r),
-        startAng - overlapAngleOnOB,
-        overlapAngleOnOB * 2,
+        incomingAngle - overlapSweep / 2,
+        overlapSweep,
         false,
-        Paint()..color = const Color(0xFFFF9800)..style = PaintingStyle.stroke..strokeWidth = 2,
+        Paint()..color = const Color(0xFFFF9800)..style = PaintingStyle.stroke..strokeWidth = 1.5,
       );
 
-      // Overlap % label
-      final labelPos = obj + opPerp * cueSide * (r + 16);
-      _drawLabel(canvas, '${(overlapFrac * 100).toStringAsFixed(0)}%',
-          labelPos, const Color(0xFFFF9800), 12, bold: true);
+      // Label
+      _drawLabel(canvas, '重合 ${(overlapFrac * 100).toStringAsFixed(0)}%',
+          obj + Offset(0, -r - 14), const Color(0xFFFF9800), 11, bold: true);
     }
 
-    // Mark cue ball inner edge
-    canvas.drawCircle(cueInnerEdge, 3, Paint()..color = const Color(0xFFFF9800));
-
-    // Actual aim line (green)
-    final aimEnd = cue + aimNorm * cueDist * 0.5;
+    // Actual aim line (green) — extend through ghost ball
+    final aimEnd = cue + aimNorm * (aimDir.distance + r * 4);
     canvas.drawLine(cue, aimEnd,
         Paint()..color = const Color(0xFF66BB6A).withValues(alpha: 0.7)..strokeWidth = 2);
 
-    // Angle arc
-    final oToP = pocket - obj;
-    final oToPNorm = oToP.distance > 0 ? oToP / oToP.distance : Offset.zero;
-    final oToC = cue - obj;
-    final oToCNorm = oToC.distance > 0 ? oToC / oToC.distance : Offset.zero;
-    final arcStartAng = math.atan2(oToPNorm.dy, oToPNorm.dx);
-    final arcEndAng = math.atan2(oToCNorm.dy, oToCNorm.dx);
-    var arcSweep = arcEndAng - arcStartAng;
-    if (arcSweep > math.pi) arcSweep -= 2 * math.pi;
-    if (arcSweep < -math.pi) arcSweep += 2 * math.pi;
-    final arcR = r * 1.6;
+    // Angle arc: cut angle at ghost ball (same fix as classic CTE)
+    final gAwayFromP2 = ghost - pocket;
+    final gAwayNorm2 = gAwayFromP2.distance > 0 ? gAwayFromP2 / gAwayFromP2.distance : Offset.zero;
+    final gToC2 = cue - ghost;
+    final gToCNorm2 = gToC2.distance > 0 ? gToC2 / gToC2.distance : Offset.zero;
+
+    final arcStartAng2 = math.atan2(gAwayNorm2.dy, gAwayNorm2.dx);
+    final arcEndAng2 = math.atan2(gToCNorm2.dy, gToCNorm2.dx);
+    var arcSweep2 = arcEndAng2 - arcStartAng2;
+    if (arcSweep2 > math.pi) arcSweep2 -= 2 * math.pi;
+    if (arcSweep2 < -math.pi) arcSweep2 += 2 * math.pi;
+    final arcR2 = r * 2.5;
     canvas.drawArc(
-      Rect.fromCircle(center: obj, radius: arcR),
-      arcStartAng, arcSweep, false,
+      Rect.fromCircle(center: ghost, radius: arcR2),
+      arcStartAng2, arcSweep2, false,
       Paint()..color = const Color(0xFF26C6DA)..style = PaintingStyle.stroke..strokeWidth = 2,
     );
-    final midArcAng = arcStartAng + arcSweep / 2;
-    final angleLabelPos = Offset(
-      obj.dx + (arcR + r) * math.cos(midArcAng),
-      obj.dy + (arcR + r) * math.sin(midArcAng),
+    final midArcAng2 = arcStartAng2 + arcSweep2 / 2;
+    final angleLabelPos2 = Offset(
+      ghost.dx + (arcR2 + r * 1.2) * math.cos(midArcAng2),
+      ghost.dy + (arcR2 + r * 1.2) * math.sin(midArcAng2),
     );
-    _drawLabel(canvas, '${cutAngleDeg.toStringAsFixed(0)}°', angleLabelPos,
+    _drawLabel(canvas, '${cutAngleDeg.toStringAsFixed(0)}°', angleLabelPos2,
         const Color(0xFF26C6DA), 13, bold: true);
   }
 
@@ -2788,6 +2868,471 @@ class _ProOneCTEPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ProOneCTEPainter old) => old.cutAngleDeg != cutAngleDeg;
+}
+
+// ---------------------------------------------------------------------------
+// Parallel Lines Aiming Lab (平行线瞄准法 / Contact-Point-to-Contact-Point)
+// ---------------------------------------------------------------------------
+class _ParallelLinesAimingLab extends StatefulWidget {
+  const _ParallelLinesAimingLab();
+  @override
+  State<_ParallelLinesAimingLab> createState() => _ParallelLinesAimingLabState();
+}
+
+class _ParallelLinesAimingLabState extends State<_ParallelLinesAimingLab> {
+  double _cutAngleDeg = 30;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(children: [
+          const Text('切角', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          Expanded(
+            child: Slider(
+              value: _cutAngleDeg,
+              min: 5,
+              max: 75,
+              onChanged: (v) => setState(() => _cutAngleDeg = v),
+            ),
+          ),
+          Text('${_cutAngleDeg.round()}°',
+              style: const TextStyle(color: Colors.white, fontSize: 12)),
+        ]),
+      ),
+      const SizedBox(height: 8),
+      AspectRatio(
+        aspectRatio: 1.5,
+        child: CustomPaint(
+          painter: _ParallelLinesAimingPainter(cutAngleDeg: _cutAngleDeg),
+          child: Container(),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Wrap(spacing: 16, runSpacing: 6, children: const [
+          _LegendItem(color: Color(0xFFF5F5F0), label: '母球 (C)'),
+          _LegendItem(color: Color(0xFFE53935), label: '目标球 (O)'),
+          _LegendItem(color: Color(0x6600E676), label: '假想球 (G)'),
+          _LegendItem(color: Color(0xFFFFEB3B), label: '进球线（O→P）'),
+          _LegendItem(color: Color(0xFF42A5F5), label: '平行线（过 C 平行进球线）'),
+          _LegendItem(color: Color(0xFFFF5722), label: '接触点连线（CP_C → CP_O）'),
+          _LegendItem(color: Color(0xFF66BB6A), label: '瞄准线（平移到 C 中心）'),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF66BB6A).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('什么是平行线瞄准法？',
+                  style: TextStyle(color: Color(0xFF66BB6A), fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '平行线法（Parallel Lines / Contact-Point-to-Contact-Point）'
+                '利用两次平行移动来找到瞄准方向，'
+                '数学上与假想球法完全等价。\n\n'
+                '操作步骤：\n'
+                '1. 画出进球线：目标球中心 → 袋口中心\n'
+                '2. 将进球线平行移动到母球，找到母球上的接触点 (CP_C)\n'
+                '3. 在目标球上找到被碰撞的接触点 (CP_O)——进球线的反方向\n'
+                '4. 连接 CP_C → CP_O 得到接触点连线\n'
+                '5. 将接触点连线平行移动回母球中心 → 即为瞄准方向\n\n'
+                '优势：不需要想象"假想球"，只需看球的表面接触点。\n'
+                '对薄切球（大角度）特别有效——接触点偏移比假想球更直观。',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('数学等价性',
+                style: TextStyle(color: Color(0xFF42A5F5), fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            const Text(
+              '平行线法和假想球法看起来不同，但几何上完全等价：\n\n'
+              '• 假想球法：找到 G 点（目标球背后一个直径处），瞄准 G 中心\n'
+              '• 平行线法：通过两次平行移动找到同样的瞄准方向\n\n'
+              '证明：CP_C → CP_O 连线过假想球中心 G，'
+              '平移到 C 中心后与 C → G 方向完全相同。',
+              style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.6),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '当前切角 ${_cutAngleDeg.round()}° — '
+              '${_cutAngleDeg < 20 ? "直球或小角度，两种方法都很直观" : _cutAngleDeg < 45 ? "中等角度，平行线法的接触点偏移容易看到" : "大角度薄切，平行线法比假想球更好用"}',
+              style: const TextStyle(color: Color(0xFFFFEB3B), fontSize: 11),
+            ),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF9800).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('实战技巧',
+                  style: TextStyle(color: Color(0xFFFF9800), fontSize: 13, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '快速使用方法（站在球台后方时）：\n'
+                '1. 站在目标球后方，目视进球线（O→P）\n'
+                '2. 在目标球"背面"（远离袋口侧）找到接触点 CP_O\n'
+                '3. 走到母球后方，想象进球线平移到母球上\n'
+                '4. 母球"前面"（面对目标球侧）的对应点就是 CP_C\n'
+                '5. 将 CP_C→CP_O 连线方向作为出杆方向\n\n'
+                '半球法则（特殊角度）：\n'
+                '• 切角 30° 时：CP_O 在目标球赤道位置（半球切割线）\n'
+                '  — 即母球瞄准目标球的"边缘"，俗称"半颗球"\n'
+                '• 切角 0°（直球）：CP_O 在最远端，母球正面撞击\n'
+                '• 切角 90°（极薄）：CP_O 在最近端，几乎擦边而过\n\n'
+                '各方法适用场景对比：\n'
+                '• 直球/小角度（<15°）→ 任何方法都行，直觉瞄准即可\n'
+                '• 中等角度（15°-45°）→ 假想球法 or 平行线法均好用\n'
+                '• 大角度薄切（>45°）→ 平行线法优于假想球（视觉参考更清晰）\n'
+                '• 长距离切球 → 平行线法+CTE 组合最稳定\n'
+                '• 翻袋球 → 不适用，需用镜像法/菱形系统',
+                style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.6),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE53935).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE53935).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('局限性与常见问题',
+                  style: TextStyle(color: Color(0xFFE53935), fontSize: 13, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '1. ⚠ 球体立体感造成的"看薄"偏差（最关键！）\n'
+                '   平行线法在平面图上完美，但球是立体球面。'
+                '我们从球杆高度（接近水平）看球时，球面上的接触'
+                '点和赤道位置有弧面差异：\n'
+                '   • 我们看到的球"边缘"是球的赤道（最宽处）\n'
+                '   • 但实际碰撞接触点在赤道偏下的球面上\n'
+                '   • 接触点的视觉投影比实际位置更靠球心\n'
+                '   → 效果：按平面理论瞄准，实际会"偏薄"（overcut）\n'
+                '   → 角度越大偏差越明显（30° 约偏 0.5°，60° 约偏 2°）\n'
+                '   → 补偿：瞄准时比理论点"稍厚"一点，或习惯瞄偏\n'
+                '   → Dr. Dave 称之为 GBD（Ghost Ball Deflection）\n'
+                '   → 所有基于接触点的方法都有此问题，包括假想球法——'
+                '不是平行线法独有的缺陷\n'
+                '   → 规避方法见下方"GBD 规避策略"卡片\n\n'
+                '2. 碰撞诱导偏转（CIT / Throw）\n'
+                '   平行线法假设纯几何碰撞，但实际中球与球碰撞时'
+                '摩擦力会产生"偏转"（Throw）——目标球实际走向会'
+                '偏离纯几何线 1°-3°。对薄切球影响尤为明显。\n'
+                '   → 补偿方法：大角度薄切时，瞄准点比几何计算点'
+                '"多切一点"（约半个球径偏移量的 3-5%）\n'
+                '   → 好消息：GBD（看薄）和 Throw（偏转）部分互相抵消\n\n'
+                '3. 俯视视角误差\n'
+                '   站在球台旁边俯视时，球的"接触点"位置会因视角'
+                '倾斜而产生视差。特别是远距离球，球面上的点从不同'
+                '角度看位置不同（这与第 1 点球体立体感相关联）。\n'
+                '   → 补偿方法：趴下瞄准时，让主视眼沿球杆方向看；'
+                '站着预判时，习惯性多看两眼确认\n\n'
+                '4. 不适用加塞（Side Spin）情况\n'
+                '   母球带侧旋时，碰撞后目标球走向会额外偏移'
+                '（顺塞偏多，反塞偏少），纯平行线法无法补偿。\n'
+                '   → 需要结合经验微调瞄准点\n\n'
+                '5. 心理依赖"接触点"可能干扰节奏\n'
+                '   初学者过于关注找准接触点，容易在瞄准阶段花太多'
+                '时间思考，影响出杆流畅度。\n'
+                '   → 建议：练习时慢慢找点，比赛时凭肌肉记忆快速定位\n\n'
+                '6. 球堆密集时难以使用\n'
+                '   当目标球附近有其他球遮挡时，无法清楚看到接触点'
+                '位置，此时假想球法可能更灵活。',
+                style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.6),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF9C27B0).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF9C27B0).withValues(alpha: 0.2)),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('GBD 规避策略',
+                  style: TextStyle(color: Color(0xFF9C27B0), fontSize: 13, fontWeight: FontWeight.bold)),
+              SizedBox(height: 6),
+              Text(
+                '方法一：利用 GBD 与 Throw 的互相抵消\n'
+                '  GBD 让你"看薄"（偏向 overcut），而碰撞摩擦（Throw）'
+                '让目标球"偏厚"走。两者方向相反，在很多角度下接近'
+                '抵消。因此——不做修正、按直觉瞄准反而是对的！\n'
+                '  Dr. Dave 指出：大多数球手"潜意识学会了补偿"，'
+                '刻意纠正反而打不准。\n\n'
+                '方法二：使用 Gearing Outside English（齿轮外塞）\n'
+                '  在切球时加适量的"顺塞"（切球方向的外侧旋转），'
+                '可以完全消除 Throw，让目标球精确走几何线路。\n'
+                '  • 半球切（30°）约需 50% 侧旋\n'
+                '  • 角度越大需要的外塞越多\n'
+                '  • 缺点：母球路线也会因侧旋改变，需要同步调整\n\n'
+                '方法三：改用不依赖接触点的瞄准系统\n'
+                '  CTE（Center-To-Edge）系统通过球杆枢转来定位'
+                '瞄准方向，不依赖球面上的接触点判断，因此完全'
+                '不受 GBD 影响。适合对 GBD 敏感的大角度薄切球。\n\n'
+                '方法四：提高击球速度\n'
+                '  Throw 量在慢速球时最大（摩擦时间长），快速击球'
+                '时 Throw 显著减小（减少一半以上）。所以打快球时'
+                'GBD 反而不会被 Throw 抵消——此时需要有意识地'
+                '"瞄厚"一点来补偿 GBD。\n\n'
+                '方法五：练习"肌肉记忆校准"\n'
+                '  固定同一角度反复练习，让身体自动记住正确的视觉'
+                '偏差量。不同角度分别练（15°/30°/45°/60°），'
+                '每个角度练到自动化后换下一个。这是职业球员最终'
+                '依赖的方法——他们不计算 GBD，而是凭手感校准。',
+                style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.6),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ]);
+  }
+}
+
+class _ParallelLinesAimingPainter extends CustomPainter {
+  _ParallelLinesAimingPainter({required this.cutAngleDeg});
+  final double cutAngleDeg;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final r = w * 0.035;
+
+    canvas.drawRRect(
+      RRect.fromRectXY(Rect.fromLTWH(0, 0, w, h), 6, 6),
+      Paint()..color = const Color(0xFF1B6B1F),
+    );
+
+    // Positions
+    final pocket = Offset(w * 0.88, h * 0.15);
+    final obj = Offset(w * 0.52, h * 0.48);
+
+    // Pocket line direction (O → P)
+    final opDir = pocket - obj;
+    final opLen = opDir.distance;
+    final opNorm = opDir / opLen;
+
+    // Ghost ball position (for reference)
+    final ghost = obj - opNorm * (r * 2);
+
+    // Cue ball — placed based on cut angle
+    final cutRad = cutAngleDeg * math.pi / 180;
+    final revX = -opNorm.dx;
+    final revY = -opNorm.dy;
+    final cgDirX = revX * math.cos(cutRad) + revY * math.sin(cutRad);
+    final cgDirY = -revX * math.sin(cutRad) + revY * math.cos(cutRad);
+    final cgDir = Offset(cgDirX, cgDirY);
+    final cueDist = w * 0.28;
+    final cue = ghost + cgDir * cueDist;
+
+    // Contact point on OB (CP_O): the point on OB surface facing away from pocket
+    final cpO = obj - opNorm * r;
+
+    // Contact point on CB (CP_C): shift pocket line parallel to CB, find CB surface point
+    final cpC = cue + opNorm * r;
+
+    // Step 1: O → P pocket line (yellow dashed)
+    _drawDashed(canvas, obj, pocket,
+        Paint()..color = const Color(0xFFFFEB3B).withValues(alpha: 0.7)..strokeWidth = 1.5);
+
+    // Step 2: Parallel line through CB (blue dashed, full length for visual)
+    final parallelStart = cue - opNorm * (w * 0.15);
+    final parallelEnd = cue + opNorm * (w * 0.4);
+    _drawDashed(canvas, parallelStart, parallelEnd,
+        Paint()..color = const Color(0xFF42A5F5).withValues(alpha: 0.5)..strokeWidth = 1.2);
+
+    // Parallel indicator arrows (small marks between the two parallel lines)
+    final midParallel = (obj + cue) * 0.5;
+    final perpDir = Offset(-opNorm.dy, opNorm.dx);
+    final markLen = r * 0.8;
+    for (var i = 0; i < 3; i++) {
+      final t = -1.0 + i;
+      final markCenter = midParallel + perpDir * (t * r * 3);
+      canvas.drawLine(
+        markCenter - perpDir * markLen,
+        markCenter + perpDir * markLen,
+        Paint()..color = Colors.white24..strokeWidth = 0.8,
+      );
+    }
+
+    // Step 3: CP_C → CP_O contact point line (red/orange)
+    canvas.drawLine(cpC, cpO,
+        Paint()..color = const Color(0xFFFF5722).withValues(alpha: 0.85)..strokeWidth = 2.0);
+    _drawArrow(canvas, cpC, cpO, const Color(0xFFFF5722), r * 0.4);
+
+    // Step 4: Aim line — parallel shift of CP line to CB center (green)
+    final cpDir = cpO - cpC;
+    final cpDirLen = cpDir.distance;
+    if (cpDirLen > 0.1) {
+      final cpNorm = cpDir / cpDirLen;
+      final aimEnd = cue + cpNorm * cueDist * 0.8;
+      canvas.drawLine(cue, aimEnd,
+          Paint()..color = const Color(0xFF66BB6A)..strokeWidth = 2.0);
+      _drawArrow(canvas, cue, aimEnd, const Color(0xFF66BB6A), r * 0.5);
+    }
+
+    // Ghost ball (faint reference)
+    canvas.drawCircle(ghost, r, Paint()..color = const Color(0x2200E676));
+    canvas.drawCircle(ghost, r,
+        Paint()..color = const Color(0x6600E676)..style = PaintingStyle.stroke..strokeWidth = 1.0);
+
+    // Object ball
+    canvas.drawCircle(obj, r, Paint()..color = const Color(0xFFE53935));
+    _drawBallLabel(canvas, obj, 'O', r);
+
+    // Cue ball
+    canvas.drawCircle(cue, r, Paint()..color = const Color(0xFFF5F5F0));
+    _drawBallLabel(canvas, cue, 'C', r, dark: true);
+
+    // Contact points (small filled dots)
+    canvas.drawCircle(cpO, 4, Paint()..color = const Color(0xFFFF5722));
+    canvas.drawCircle(cpO, 4,
+        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawCircle(cpC, 4, Paint()..color = const Color(0xFFFF5722));
+    canvas.drawCircle(cpC, 4,
+        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
+
+    // Labels for contact points
+    _drawLabel(canvas, 'CP_O', cpO + const Offset(8, -14), const Color(0xFFFF5722), 9, bold: true);
+    _drawLabel(canvas, 'CP_C', cpC + const Offset(8, 8), const Color(0xFFFF5722), 9, bold: true);
+
+    // Pocket
+    canvas.drawCircle(pocket, r * 1.5, Paint()..color = const Color(0xFF111111));
+    canvas.drawCircle(pocket, r * 1.5,
+        Paint()..color = const Color(0xFF81C784)..style = PaintingStyle.stroke..strokeWidth = 1.0);
+    _drawLabel(canvas, 'P', pocket + Offset(0, r * 1.5 + 10), Colors.white70, 10);
+
+    // Ghost ball label
+    _drawLabel(canvas, 'G', ghost + Offset(0, -r - 8), const Color(0xFF00E676), 9);
+
+    // Step labels
+    _drawLabel(canvas, '① 进球线 O→P', Offset(w * 0.65, h * 0.08), const Color(0xFFFFEB3B), 10);
+    _drawLabel(canvas, '② 平行移动到 C', parallelEnd + const Offset(4, -4), const Color(0xFF42A5F5), 9);
+    _drawLabel(canvas, '③ 连接接触点', (cpC + cpO) * 0.5 + const Offset(-40, 12), const Color(0xFFFF5722), 9);
+
+    // Cut angle arc
+    if (cutAngleDeg > 5) {
+      final arcR = r * 3;
+      final startAngle = math.atan2(opNorm.dy, opNorm.dx) + math.pi;
+      canvas.drawArc(
+        Rect.fromCircle(center: ghost, radius: arcR),
+        startAngle, cutRad,
+        false,
+        Paint()..color = Colors.white54..style = PaintingStyle.stroke..strokeWidth = 1.0,
+      );
+      final labelAngle = startAngle + cutRad / 2;
+      final labelPos = ghost + Offset(math.cos(labelAngle), math.sin(labelAngle)) * (arcR + 10);
+      _drawLabel(canvas, '${cutAngleDeg.round()}°', labelPos, Colors.white70, 10);
+    }
+  }
+
+  void _drawDashed(Canvas canvas, Offset a, Offset b, Paint paint) {
+    final dir = b - a;
+    final len = dir.distance;
+    if (len < 1) return;
+    final norm = dir / len;
+    const dashLen = 5.0;
+    const gapLen = 3.0;
+    var d = 0.0;
+    while (d < len) {
+      final s = a + norm * d;
+      final e = a + norm * math.min(d + dashLen, len);
+      canvas.drawLine(s, e, paint);
+      d += dashLen + gapLen;
+    }
+  }
+
+  void _drawArrow(Canvas canvas, Offset from, Offset to, Color color, double size) {
+    final dir = to - from;
+    final len = dir.distance;
+    if (len < 1) return;
+    final norm = dir / len;
+    final perp = Offset(-norm.dy, norm.dx);
+    final tip = to;
+    final left = tip - norm * size * 2 + perp * size;
+    final right = tip - norm * size * 2 - perp * size;
+    final path = Path()..moveTo(tip.dx, tip.dy)..lineTo(left.dx, left.dy)..lineTo(right.dx, right.dy)..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  void _drawBallLabel(Canvas canvas, Offset center, String text, double radius, {bool dark = false}) {
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: TextStyle(
+        color: dark ? Colors.black87 : Colors.white,
+        fontSize: radius * 0.9,
+        fontWeight: FontWeight.bold,
+      )),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(center.dx - tp.width / 2, center.dy - tp.height / 2));
+  }
+
+  void _drawLabel(Canvas canvas, String text, Offset pos, Color color, double fontSize, {bool bold = false}) {
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: TextStyle(
+        color: color,
+        fontSize: fontSize,
+        fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+      )),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(pos.dx - tp.width / 2, pos.dy - tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(_ParallelLinesAimingPainter old) => old.cutAngleDeg != cutAngleDeg;
 }
 
 // ---------------------------------------------------------------------------

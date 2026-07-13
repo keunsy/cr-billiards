@@ -240,16 +240,24 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: Colors.black45,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(color: Colors.white60, fontSize: 10),
-        overflow: TextOverflow.ellipsis,
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 11,
+            fontWeight: FontWeight.w400,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }
@@ -268,18 +276,25 @@ class _TinyIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
     return SizedBox(
-      width: 32,
-      height: 32,
+      width: 36,
+      height: 36,
       child: IconButton(
         onPressed: onPressed,
         icon: Icon(icon,
-            color: enabled ? Colors.white : Colors.white24,
-            size: 18),
+            color: enabled ? Colors.white : Colors.white24, size: 18),
         padding: EdgeInsets.zero,
+        tooltip: null,
         style: IconButton.styleFrom(
-          backgroundColor: enabled ? Colors.black45 : Colors.black26,
+          backgroundColor: enabled
+              ? Colors.black.withValues(alpha: 0.5)
+              : Colors.black.withValues(alpha: 0.25),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(
+              color: enabled
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.transparent,
+            ),
           ),
         ),
       ),

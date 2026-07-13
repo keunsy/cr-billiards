@@ -27,7 +27,7 @@ class TableConstants {
   static const double footSpotX = halfLength - length / 4;
 
   // Pseudo-3D Y compression
-  static const double perspectiveYScale = 0.85;
+  static const double perspectiveYScale = 1.0;
 
   // Max impulse
   static const double maxShotPower = 4500.0;

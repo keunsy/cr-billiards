@@ -62,8 +62,8 @@ class Ball extends BodyComponent with ContactCallbacks {
     final bodyDef = BodyDef()
       ..type = BodyType.dynamic
       ..position = _initialPosition
-      ..linearDamping = 0.85
-      ..angularDamping = 0.6
+      ..linearDamping = 0.35
+      ..angularDamping = 0.3
       ..bullet = true;
 
     return world.createBody(bodyDef)..createFixture(fixtureDef);

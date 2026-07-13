@@ -11,19 +11,29 @@ class PowerGauge extends StatefulWidget {
   State<PowerGauge> createState() => _PowerGaugeState();
 }
 
-class _PowerGaugeState extends State<PowerGauge> {
+class _PowerGaugeState extends State<PowerGauge>
+    with SingleTickerProviderStateMixin {
   double _power = 0.5;
+  late final AnimationController _shootAnim;
 
   @override
   void initState() {
     super.initState();
     widget.game.powerNotifier.addListener(_syncFromGame);
     _power = widget.game.power;
+    _shootAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      lowerBound: 0.85,
+      upperBound: 1.0,
+      value: 1.0,
+    );
   }
 
   @override
   void dispose() {
     widget.game.powerNotifier.removeListener(_syncFromGame);
+    _shootAnim.dispose();
     super.dispose();
   }
 
@@ -40,6 +50,7 @@ class _PowerGaugeState extends State<PowerGauge> {
 
   Future<void> _shoot() async {
     if (!widget.game.canAim) return;
+    _shootAnim.reverse().then((_) => _shootAnim.forward());
     await widget.game.shoot();
   }
 
@@ -50,50 +61,52 @@ class _PowerGaugeState extends State<PowerGauge> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxH = constraints.maxHeight;
-        final shootBtnSize = maxH < 300 ? 34.0 : 48.0;
-        final barWidth = maxH < 300 ? 26.0 : 38.0;
+        final shootBtnSize = maxH < 300 ? 38.0 : 50.0;
+        final barWidth = maxH < 300 ? 28.0 : 38.0;
         final barHeight = (maxH - shootBtnSize - 30).clamp(60.0, 300.0);
 
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Power percentage label
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(4),
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.white10),
               ),
               child: Text(
                 '${(_power * 100).round()}%',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   fontSize: 11,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
 
-            // Power bar
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTapDown: (details) {
                 final localY = details.localPosition.dy;
-                final newPower = 1.0 - (localY / barHeight).clamp(0.0, 1.0);
+                final newPower =
+                    1.0 - (localY / barHeight).clamp(0.0, 1.0);
                 _updatePower(newPower);
               },
               onPanStart: (_) {},
               onPanUpdate: (details) {
-                _updatePower(_power - details.delta.dy / (barHeight * 0.5));
+                _updatePower(
+                    _power - details.delta.dy / (barHeight * 0.5));
               },
               child: Container(
                 width: barWidth,
                 height: barHeight,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(barWidth / 4),
-                  border: Border.all(color: Colors.white30, width: 1),
-                  color: Colors.black38,
+                  borderRadius: BorderRadius.circular(barWidth / 3),
+                  border: Border.all(color: Colors.white24, width: 1),
+                  color: Colors.black.withValues(alpha: 0.45),
                 ),
                 child: Stack(
                   alignment: Alignment.bottomCenter,
@@ -103,34 +116,39 @@ class _PowerGaugeState extends State<PowerGauge> {
                       width: barWidth,
                       height: barHeight * _power,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(barWidth / 4),
+                        borderRadius: BorderRadius.circular(barWidth / 3),
                         gradient: const LinearGradient(
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
                           colors: [
                             Color(0xFF4CAF50),
-                            Color(0xFFFFEB3B),
+                            Color(0xFFCDDC39),
                             Color(0xFFFF9800),
-                            Color(0xFFF44336),
+                            Color(0xFFE53935),
                           ],
-                          stops: [0.0, 0.4, 0.7, 1.0],
+                          stops: [0.0, 0.35, 0.65, 1.0],
                         ),
                       ),
                     ),
+                    // Power level indicator bar
                     Positioned(
                       bottom: barHeight * _power - 1.5,
                       child: Container(
-                        width: barWidth,
+                        width: barWidth + 4,
                         height: 3,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(2),
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black54, blurRadius: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              blurRadius: 4,
+                            ),
                           ],
                         ),
                       ),
                     ),
+                    // Scale marks
                     ...List.generate(4, (i) {
                       final y = barHeight * (1 - (i + 1) / 5);
                       return Positioned(
@@ -146,24 +164,33 @@ class _PowerGaugeState extends State<PowerGauge> {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
 
-            // Shoot button
-            SizedBox(
-              width: shootBtnSize,
-              height: shootBtnSize,
-              child: ElevatedButton(
-                onPressed: canShoot ? _shoot : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      canShoot ? const Color(0xFFE53935) : Colors.grey,
-                  foregroundColor: Colors.white,
-                  shape: const CircleBorder(),
-                  padding: EdgeInsets.zero,
-                  elevation: canShoot ? 3 : 1,
+            // Shoot button with scale animation
+            ScaleTransition(
+              scale: _shootAnim,
+              child: SizedBox(
+                width: shootBtnSize,
+                height: shootBtnSize,
+                child: ElevatedButton(
+                  onPressed: canShoot ? _shoot : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canShoot
+                        ? const Color(0xFFE53935)
+                        : const Color(0xFF555555),
+                    foregroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    padding: EdgeInsets.zero,
+                    elevation: canShoot ? 4 : 1,
+                    shadowColor: canShoot
+                        ? const Color(0xFFE53935).withValues(alpha: 0.5)
+                        : Colors.transparent,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: shootBtnSize < 44 ? 20 : 24,
+                  ),
                 ),
-                child: Icon(Icons.sports_bar,
-                    size: shootBtnSize < 44 ? 18 : 22),
               ),
             ),
           ],

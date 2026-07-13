@@ -108,6 +108,8 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
     f2d.maxTranslation = 20.0;
     f2d.maxTranslationSquared = 20.0 * 20.0;
 
+    await AudioManager.instance.init();
+
     final settings = GameSettings.instance;
     guidelineEnabled = settings.guidelineEnabled;
     angleDisplayEnabled = settings.angleDisplayEnabled;
@@ -638,28 +640,16 @@ class BilliardsGame extends Forge2DGame with TapCallbacks, DragCallbacks {
 
   void _fitCamera(Vector2 size) {
     final isCompact = size.y < 500;
-    final uiLeftPx = isCompact ? 0.0 : 50.0;
-    final uiRightPx = isCompact ? 28.0 : 55.0;
-    final uiTopPx = isCompact ? 0.0 : 40.0;
-    const uiBottomPx = 0.0;
-    final margin = isCompact ? 4.0 : 16.0;
+    final marginX = isCompact ? 10.0 : 20.0;
+    final marginY = isCompact ? 28.0 : 40.0;
 
-    final usableW = size.x - uiLeftPx - uiRightPx;
-    final usableH = size.y - uiTopPx - uiBottomPx;
-
-    final tableW = TableConstants.length + margin;
-    final tableH = (TableConstants.width + margin) * TableConstants.perspectiveYScale;
-    final scaleX = usableW / tableW;
-    final scaleY = usableH / tableH;
+    final tableW = TableConstants.length + TableConstants.railWidth * 2 + marginX;
+    final tableH = (TableConstants.width + TableConstants.railWidth * 2 + marginY) * TableConstants.perspectiveYScale;
+    final scaleX = size.x / tableW;
+    final scaleY = size.y / tableH;
     final zoom = math.min(scaleX, scaleY);
     camera.viewfinder.zoom = zoom;
-
-    final offsetXPx = (uiLeftPx - uiRightPx) / 2;
-    final offsetYPx = (uiTopPx - uiBottomPx) / 2;
-    camera.viewfinder.position = Vector2(
-      -offsetXPx / zoom,
-      -offsetYPx / zoom,
-    );
+    camera.viewfinder.position = Vector2.zero();
   }
 
   @override

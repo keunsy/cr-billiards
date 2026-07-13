@@ -32,20 +32,18 @@ class Scoreboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasFoul = rules.lastFoul != null;
     final premature = rules.isEightBallPremature();
-    if (!hasFoul && !premature) return const SizedBox.shrink();
 
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white10),
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Compact ball row — two groups on one line
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -53,7 +51,9 @@ class Scoreboard extends StatelessWidget {
                     7,
                     (i) => _ballDot(
                         i + 1, rules.pocketedSolids.contains(i + 1), false)),
+                const SizedBox(width: 2),
                 _dot8(rules.eightBallPocketed),
+                const SizedBox(width: 2),
                 ...List.generate(
                     7,
                     (i) => _ballDot(
@@ -61,20 +61,37 @@ class Scoreboard extends StatelessWidget {
               ],
             ),
             if (hasFoul) ...[
-              const SizedBox(height: 2),
-              Text(
-                rules.lastFoul!.description,
-                style: const TextStyle(
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF7043).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  rules.lastFoul!.description,
+                  style: const TextStyle(
                     color: Color(0xFFFF7043),
                     fontSize: 10,
-                    fontWeight: FontWeight.w500),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ],
             if (premature) ...[
-              const SizedBox(height: 2),
-              const Text(
-                '8号球过早入袋',
-                style: TextStyle(color: Color(0xFFE53935), fontSize: 10),
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE53935).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  '8号球过早入袋',
+                  style: TextStyle(color: Color(0xFFE53935), fontSize: 10),
+                ),
               ),
             ],
           ],
@@ -86,18 +103,28 @@ class Scoreboard extends StatelessWidget {
   Widget _dot8(bool pocketed) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 1.5),
-      child: Container(
-        width: 14,
-        height: 14,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 18,
+        height: 18,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: pocketed
-              ? const Color(0xFF212121).withValues(alpha: 0.35)
+              ? const Color(0xFF212121).withValues(alpha: 0.3)
               : const Color(0xFF212121),
           border: Border.all(
-            color: pocketed ? Colors.white24 : Colors.white54,
-            width: 0.8,
+            color: pocketed ? Colors.white12 : Colors.white54,
+            width: 1,
           ),
+          boxShadow: pocketed
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
         ),
         child: pocketed
             ? null
@@ -105,7 +132,7 @@ class Scoreboard extends StatelessWidget {
                 child: Text('8',
                     style: TextStyle(
                         color: Colors.white,
-                        fontSize: 7,
+                        fontSize: 9,
                         fontWeight: FontWeight.bold)),
               ),
       ),
@@ -115,20 +142,32 @@ class Scoreboard extends StatelessWidget {
   Widget _ballDot(int number, bool pocketed, bool isStripe) {
     final color = _ballColors[number] ?? Colors.grey;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: Container(
-        width: 14,
-        height: 14,
+      padding: const EdgeInsets.symmetric(horizontal: 1.5),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 18,
+        height: 18,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: pocketed ? color.withValues(alpha: 0.3) : color,
+          color: pocketed ? color.withValues(alpha: 0.25) : color,
           border: Border.all(
-            color: pocketed ? Colors.white24 : Colors.white54,
-            width: 0.8,
+            color: pocketed ? Colors.white12 : Colors.white54,
+            width: 1,
           ),
+          boxShadow: pocketed
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
         ),
         child: pocketed
-            ? null
+            ? Center(
+                child: Icon(Icons.close, size: 10, color: Colors.white38),
+              )
             : Center(
                 child: Text(
                   '$number',
@@ -136,7 +175,7 @@ class Scoreboard extends StatelessWidget {
                     color: (number == 8 || (number >= 5 && !isStripe))
                         ? Colors.white
                         : Colors.black,
-                    fontSize: 7,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

@@ -2965,15 +2965,39 @@ class _GripPainter extends CustomPainter {
     _lbl(canvas, '重心', balancePt + const Offset(-8, -16), Colors.white38);
 
     final gripX = cx - 25.0;
-    for (var i = 0; i < 3; i++) {
-      final fx = gripX - 8.0 + i * 8.0;
-      canvas.drawArc(Rect.fromCenter(center: Offset(fx, cy), width: 12, height: 18),
-        -math.pi * 0.8, math.pi * 1.6, false,
-        Paint()..color = const Color(0xFFE8B89D)..strokeWidth = 3..style = PaintingStyle.stroke);
-    }
+    const skinColor = Color(0xFFE8B89D);
+    const skinDark = Color(0xFFD4A080);
+    // Palm behind the cue
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(gripX, cy + 14), width: 30, height: 16), const Radius.circular(4)),
-      Paint()..color = const Color(0xFFE8B89D).withValues(alpha: 0.4));
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(gripX, cy + 10), width: 34, height: 20),
+        const Radius.circular(5)),
+      Paint()..color = skinColor.withValues(alpha: 0.5));
+    // Fingers wrapping around the cue (4 rounded rects curving over the top)
+    for (var i = 0; i < 4; i++) {
+      final fx = gripX - 11.0 + i * 7.5;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(fx, cy - 10, 6, 14),
+          const Radius.circular(3)),
+        Paint()..color = skinColor);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(fx, cy - 10, 6, 14),
+          const Radius.circular(3)),
+        Paint()..color = skinDark..style = PaintingStyle.stroke..strokeWidth = 0.8);
+    }
+    // Thumb on the side
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(gripX + 10, cy - 6, 8, 12),
+        const Radius.circular(3)),
+      Paint()..color = skinColor);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(gripX + 10, cy - 6, 8, 12),
+        const Radius.circular(3)),
+      Paint()..color = skinDark..style = PaintingStyle.stroke..strokeWidth = 0.8);
 
     canvas.drawLine(Offset(gripX - 16, cy + 28), Offset(gripX + 16, cy + 28),
         Paint()..color = const Color(0xFFFF9800)..strokeWidth = 1.5);
