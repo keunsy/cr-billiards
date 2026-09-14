@@ -1,4 +1,5 @@
 # Miscellaneous
+.dsh_better_edit/
 *.class
 *.log
 *.pyc

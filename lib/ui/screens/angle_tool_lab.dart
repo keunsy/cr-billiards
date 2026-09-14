@@ -27,11 +27,19 @@ class _AngleToolLabState extends State<AngleToolLab> {
     Offset(0.96, 0.94),
   ];
 
+  // Canvas is locked to AspectRatio(2/1), so one normalized y-unit covers
+  // only half the physical length of one x-unit. Measure in this "iso" space
+  // (y × h/w) to match the pixel-space painter; iso length × 254 == cm.
+  static const _dyScale = 0.5; // h/w, fixed by AspectRatio(2.0/1.0)
+
+  static Offset _iso(Offset n) => Offset(n.dx, n.dy * _dyScale);
+
   int _nearestPocketIndex() {
     double minD = double.infinity;
     int idx = 0;
+    final obj = _iso(_objBall);
     for (var i = 0; i < _pockets.length; i++) {
-      final d = (_objBall - _pockets[i]).distance;
+      final d = (obj - _iso(_pockets[i])).distance;
       if (d < minD) {
         minD = d;
         idx = i;
@@ -255,23 +263,29 @@ class _AngleToolLabState extends State<AngleToolLab> {
   Widget _buildInfoPanel() {
     final pi = _nearestPocketIndex();
     final pocket = _pockets[pi];
-    final opDir = pocket - _objBall;
+    // Measure in iso space (see _iso): angles match the pixel-space painter
+    // exactly and iso length × 254 == painter's pixels / w × 254 (cm).
+    final obj = _iso(_objBall);
+    final cue = _iso(_cueBall);
+    final pk = _iso(pocket);
+    final opDir = pk - obj;
     final opLen = opDir.distance;
     if (opLen < 0.001) return const SizedBox.shrink();
     final opNorm = opDir / opLen;
 
-    const ballR = 0.03;
-    final ghost = _objBall - opNorm * (ballR * 2);
+    const ballR = 0.025; // matches painter's ballR = w * 0.025 in iso units
+    final ghost = obj - opNorm * (ballR * 2);
 
-    final cgDir = ghost - _cueBall;
+    final cgDir = ghost - cue;
     final cgLen = cgDir.distance;
     if (cgLen < 0.001) return const SizedBox.shrink();
 
-    final cutAngleRaw = _angleBetween(-opNorm, cgDir / cgLen) * 180 / math.pi;
-    final validShot = cutAngleRaw <= 90;
-    final cutAngle = validShot ? cutAngleRaw : cutAngleRaw;
+    // Cut angle θ = ∠(object travel dir O→P, cue travel dir C→G):
+    // θ = 0° is a straight ball, θ ≤ 90° is a legal pot.
+    final cutAngle = _angleBetween(opNorm, cgDir / cgLen) * 180 / math.pi;
+    final validShot = cutAngle <= 90;
 
-    final coDir = _objBall - _cueBall;
+    final coDir = obj - cue;
     final coLen = coDir.distance;
     if (coLen < 0.001) return const SizedBox.shrink();
     final aimDeviation = _angleBetween(opNorm, coDir / coLen) * 180 / math.pi;
@@ -471,6 +485,12 @@ class _AngleToolPainter extends CustomPainter {
     final cgDir = ghost - cC;
     final cgLen = cgDir.distance;
 
+    // Cut angle θ = ∠(O→P, cue travel dir): 0° straight ball, >90° illegal.
+    final cutAngleDeg = cgLen > 1
+        ? _angleBetweenVec(opNorm, cgDir / cgLen) * 180 / math.pi
+        : 0.0;
+    final validShot = cgLen > 1 && cutAngleDeg <= 90;
+
     // Collect all key points for selection hit-testing and rendering
     final pts = <String, Offset>{
       'C': cC, 'O': oC, 'P': pC, 'G': ghost,
@@ -530,8 +550,8 @@ class _AngleToolPainter extends CustomPainter {
     }
     canvas.drawLine(ghost, pC, Paint()..color = const Color(0x88FFEB3B)..strokeWidth = 1.0);
 
-    // Separation line
-    if (cgLen > 1) {
+    // Separation line (cue-ball path after contact — only for a legal pot)
+    if (validShot) {
       final perpDir = Offset(-opNorm.dy, opNorm.dx);
       final cgNorm = cgDir / cgLen;
       final dot = perpDir.dx * cgNorm.dx + perpDir.dy * cgNorm.dy;
@@ -547,12 +567,10 @@ class _AngleToolPainter extends CustomPainter {
     if (cgLen > 1) {
       final cgNormUnit = cgDir / cgLen;
 
-      // 1) Cut angle arc at ghost ball (white)
-      final cutAngleRad = _angleBetweenVec(-opNorm, cgNormUnit);
-      final cutAngleDeg = cutAngleRad * 180 / math.pi;
+      // 1) Cut angle arc at ghost ball (white): object travel dir vs cue travel dir
       if (cutAngleDeg > 2 && cutAngleDeg < 90) {
         final arcR = ballR * 3;
-        final fromAngle = math.atan2(-opNorm.dy, -opNorm.dx);
+        final fromAngle = math.atan2(opNorm.dy, opNorm.dx);
         final toAngle = math.atan2(cgNormUnit.dy, cgNormUnit.dx);
         final sweep = _shortestSweep(fromAngle, toAngle);
 
@@ -572,7 +590,6 @@ class _AngleToolPainter extends CustomPainter {
         final aimDevRad = _angleBetweenVec(opNorm, coNorm);
         final aimDevDeg = aimDevRad * 180 / math.pi;
         if (aimDevDeg > 2) {
-          final displayDeg = aimDevDeg > 90 ? 180 - aimDevDeg : aimDevDeg;
           final arcR2 = ballR * 2.5;
           final fromAngle2 = math.atan2(opNorm.dy, opNorm.dx);
           final toAngle2 = math.atan2(-coNorm.dy, -coNorm.dx);
@@ -583,26 +600,27 @@ class _AngleToolPainter extends CustomPainter {
               Paint()..color = const Color(0xBBFF9800)..style = PaintingStyle.stroke..strokeWidth = 1.2);
           final labelA2 = fromAngle2 + sweep2 / 2;
           final labelPos2 = oC + Offset(math.cos(labelA2), math.sin(labelA2)) * (arcR2 + 10);
-          _drawText(canvas, labelPos2, '偏${displayDeg.toStringAsFixed(1)}°', 9, const Color(0xFFFF9800));
+          _drawText(canvas, labelPos2, '偏${aimDevDeg.toStringAsFixed(1)}°', 9, const Color(0xFFFF9800));
         }
       }
 
-      // 3) Separation angle arc at O (blue): O→P vs mother-ball path (perpendicular)
+      // 3) Separation angle arc at O (blue): cue travel dir → cue deflection dir,
+      //    arc span = |90° − θ| = the label shown below.
       if (cutAngleDeg > 2 && cutAngleDeg < 90) {
         final perpDir = Offset(-opNorm.dy, opNorm.dx);
         final dot = perpDir.dx * cgNormUnit.dx + perpDir.dy * cgNormUnit.dy;
         final sepDir = dot > 0 ? perpDir : Offset(-perpDir.dx, -perpDir.dy);
         final sepAngle = math.atan2(sepDir.dy, sepDir.dx);
-        final opAngle = math.atan2(opNorm.dy, opNorm.dx);
-        final sepSweep = _shortestSweep(opAngle, sepAngle);
+        final cueAngle = math.atan2(cgNormUnit.dy, cgNormUnit.dx);
+        final sepSweep = _shortestSweep(cueAngle, sepAngle);
 
         if (sepSweep.abs() > 0.05) {
           final arcR3 = ballR * 4;
           canvas.drawArc(Rect.fromCircle(center: oC, radius: arcR3),
-              opAngle, sepSweep, false,
+              cueAngle, sepSweep, false,
               Paint()..color = const Color(0x9942A5F5)..style = PaintingStyle.stroke..strokeWidth = 1.2);
           final sepDeg = (90.0 - cutAngleDeg).abs();
-          final labelA3 = opAngle + sepSweep / 2;
+          final labelA3 = cueAngle + sepSweep / 2;
           final labelPos3 = oC + Offset(math.cos(labelA3), math.sin(labelA3)) * (arcR3 + 10);
           _drawText(canvas, labelPos3, '分${sepDeg.toStringAsFixed(1)}°', 9, const Color(0xFF42A5F5));
         }

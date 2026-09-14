@@ -87,6 +87,24 @@ final List<_LabCategory> _categories = [
         builder: () => const _CushionBallHub(),
       ),
       _LabItem(
+        title: '解球（K球）瞄准法',
+        subtitle: '一库/两库/多库解球：镜像展开、降维、角点对称与平行路线',
+        icon: Icons.lock_open,
+        builder: () => const _KickShotHub(),
+      ),
+      _LabItem(
+        title: '贴库球与微缝球',
+        subtitle: '贴库球进角袋/中袋、容错角与微缝薄切判断',
+        icon: Icons.straighten,
+        builder: () => const _FrozenBallHub(),
+      ),
+      _LabItem(
+        title: '组合球（传击）',
+        subtitle: '直线/角度传击：三步反推瞄准与误差放大规律',
+        icon: Icons.link,
+        builder: () => const _ComboShotHub(),
+      ),
+      _LabItem(
         title: '角度分析工具',
         subtitle: '拖动母球/目标球，实时显示所有角度与距离',
         icon: Icons.architecture,
@@ -337,7 +355,7 @@ class _LabDetailPage extends StatelessWidget {
         backgroundColor: const Color(0xFF1B4332),
         title: Text(item.title),
       ),
-      body: content is _BankShotHub || content is _CushionBallHub
+      body: content is _BankShotHub || content is _CushionBallHub || content is _KickShotHub || content is _FrozenBallHub || content is _ComboShotHub
           ? Padding(padding: const EdgeInsets.all(16), child: content)
           : ListView(
               padding: const EdgeInsets.all(16),
@@ -5513,6 +5531,1872 @@ class _OverviewRow {
 }
 
 // ===========================================================================
+// Kick Shot Hub (解球 / K球 — Tab container)
+// ===========================================================================
+
+enum _KickMethod { mirror, ratio, contact, midpoint, diamond }
+
+const Color _kickAccent = Color(0xFFAB47BC);
+const Color _kickAim = Color(0xFFFF9800);
+const Color _kickPath = Color(0xFF66BB6A);
+const Color _kickMirror = Color(0xFF26C6DA);
+const Color _kickBlock = Color(0xFFEF5350);
+
+// ---------------------------------------------------------------------------
+// Kick shared drawing helpers
+// ---------------------------------------------------------------------------
+
+void _kickDrawDash(Canvas canvas, Offset a, Offset b, Paint paint,
+    {double dash = 7, double gap = 5}) {
+  final v = b - a;
+  final len = v.distance;
+  if (len < 1) return;
+  final u = v / len;
+  double s = 0;
+  while (s < len) {
+    final e = math.min(s + dash, len);
+    canvas.drawLine(a + u * s, a + u * e, paint);
+    s = e + gap;
+  }
+}
+
+void _kickDrawBall(Canvas canvas, Offset c, double r, Color color,
+    {bool hollow = false}) {
+  if (hollow) {
+    canvas.drawCircle(c, r, Paint()..color = color.withValues(alpha: 0.18));
+    canvas.drawCircle(c, r, Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.2, r * 0.14));
+    return;
+  }
+  canvas.drawCircle(c + Offset(r * 0.12, r * 0.14), r,
+      Paint()..color = Colors.black.withValues(alpha: 0.28));
+  canvas.drawCircle(c, r, Paint()..color = color);
+  canvas.drawCircle(c + Offset(-r * 0.3, -r * 0.3), r * 0.22,
+      Paint()..color = Colors.white.withValues(alpha: 0.5));
+}
+
+void _kickDrawText(Canvas canvas, String text, Offset center,
+    {Color color = Colors.white, double fontSize = 10}) {
+  final tp = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: TextStyle(
+          color: color, fontSize: fontSize, fontWeight: FontWeight.bold),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
+}
+
+void _kickDrawArrow(Canvas canvas, Offset from, Offset to, Paint paint,
+    {double headLen = 9}) {
+  canvas.drawLine(from, to, paint);
+  final v = to - from;
+  final len = v.distance;
+  if (len < 1) return;
+  final u = v / len;
+  final p = Offset(-u.dy, u.dx);
+  final a1 = to - u * headLen + p * headLen * 0.5;
+  final a2 = to - u * headLen - p * headLen * 0.5;
+  final path = Path()
+    ..moveTo(to.dx, to.dy)
+    ..lineTo(a1.dx, a1.dy)
+    ..lineTo(a2.dx, a2.dy)
+    ..close();
+  canvas.drawPath(path, Paint()..color = paint.color);
+}
+
+double _kickSegDist(Offset p, Offset a, Offset b) {
+  final ab = b - a;
+  final l2 = ab.dx * ab.dx + ab.dy * ab.dy;
+  if (l2 == 0) return (p - a).distance;
+  double t = ((p.dx - a.dx) * ab.dx + (p.dy - a.dy) * ab.dy) / l2;
+  t = math.min(math.max(t, 0.0), 1.0);
+  return (p - (a + ab * t)).distance;
+}
+
+void _kickDrawTable(Canvas canvas, Size size, Rect play) {
+  final railW = math.min(size.width, size.height) * 0.055;
+  final outer = play.inflate(railW);
+  canvas.drawRRect(
+      RRect.fromRectAndRadius(outer, Radius.circular(railW * 0.9)),
+      Paint()..color = const Color(0xFF4E342E));
+  canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          play.inflate(railW * 0.42), Radius.circular(railW * 0.35)),
+      Paint()..color = const Color(0xFF33691E));
+  canvas.drawRect(play, Paint()..color = const Color(0xFF2E7D32));
+  final pr = railW * 0.75;
+  final pockets = <Offset>[
+    play.topLeft,
+    play.topRight,
+    play.bottomLeft,
+    play.bottomRight,
+    Offset(play.center.dx, play.top),
+    Offset(play.center.dx, play.bottom),
+  ];
+  for (final p in pockets) {
+    canvas.drawCircle(
+        p, pr, Paint()..color = Colors.black.withValues(alpha: 0.85));
+  }
+}
+
+void _kickDrawDiamonds(Canvas canvas, Rect play, double railW) {
+  final by = play.bottom + railW * 0.71;
+  final ty = play.top - railW * 0.71;
+  for (int i = 1; i <= 7; i++) {
+    final x = play.left + play.width * i / 8;
+    _kickDrawDiamondDot(canvas, Offset(x, by));
+    _kickDrawDiamondDot(canvas, Offset(x, ty));
+  }
+  final lx = play.left - railW * 0.71;
+  final rx = play.right + railW * 0.71;
+  for (int i = 1; i <= 3; i++) {
+    final y = play.top + play.height * i / 4;
+    _kickDrawDiamondDot(canvas, Offset(lx, y));
+    _kickDrawDiamondDot(canvas, Offset(rx, y));
+  }
+}
+
+void _kickDrawDiamondDot(Canvas canvas, Offset c) {
+  const s = 2.6;
+  final path = Path()
+    ..moveTo(c.dx, c.dy - s)
+    ..lineTo(c.dx + s * 0.7, c.dy)
+    ..lineTo(c.dx, c.dy + s)
+    ..lineTo(c.dx - s * 0.7, c.dy)
+    ..close();
+  canvas.drawPath(path, Paint()..color = const Color(0xFFFFE0B2));
+}
+
+// ---------------------------------------------------------------------------
+// Kick shared UI helpers
+// ---------------------------------------------------------------------------
+
+Widget _kickMethodChip(String label, bool selected, VoidCallback onTap) {
+  return Expanded(child: _kickMethodChipBody(label, selected, onTap));
+}
+
+Widget _kickMethodChipBody(String label, bool selected, VoidCallback onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: selected
+            ? _kickAccent.withValues(alpha: 0.25)
+            : Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: selected ? _kickAccent : Colors.white24),
+      ),
+      alignment: Alignment.center,
+      child: Text(label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+              color: selected ? _kickAccent : Colors.white54,
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+    ),
+  );
+}
+
+Widget _kickSliderRow(String label, double value, double min, double max,
+    ValueChanged<double> onChanged,
+    {int divisions = 50, String? valueText}) {
+  return Row(
+    children: [
+      SizedBox(
+          width: 74,
+          child: Text(label,
+              style: const TextStyle(color: Colors.white70, fontSize: 12))),
+      Expanded(
+        child: Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: divisions,
+          activeColor: _kickAccent,
+          onChanged: onChanged,
+        ),
+      ),
+      if (valueText != null)
+        SizedBox(
+            width: 44,
+            child: Text(valueText,
+                style: TextStyle(
+                    color: _kickAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold))),
+    ],
+  );
+}
+
+Widget _kickToggleRow(String label, bool value, ValueChanged<bool> onChanged) {
+  return Row(
+    children: [
+      Expanded(
+          child: Text(label,
+              style: const TextStyle(color: Colors.white70, fontSize: 12))),
+      Switch(value: value, onChanged: onChanged, activeColor: _kickAccent),
+    ],
+  );
+}
+
+Widget _kickChip(String text, Color color) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withValues(alpha: 0.4)),
+    ),
+    child: Text(text,
+        style: TextStyle(
+            color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+  );
+}
+
+Widget _kickSection(String title, List<Widget> children) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title,
+            style: TextStyle(
+                color: _kickAccent,
+                fontSize: 13,
+                fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        ...children,
+      ],
+    ),
+  );
+}
+
+Widget _kickInfoCard(Color color, String text) {
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withValues(alpha: 0.3)),
+    ),
+    child: Text(text,
+        style: TextStyle(
+            color: color.withValues(alpha: 0.9), fontSize: 12, height: 1.6)),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Kick Shot Hub
+// ---------------------------------------------------------------------------
+
+class _KickShotHub extends StatefulWidget {
+  const _KickShotHub();
+
+  @override
+  State<_KickShotHub> createState() => _KickShotHubState();
+}
+
+class _KickShotHubState extends State<_KickShotHub>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
+
+  static const _tabs = ['一库解球', '两库解球', '多库解球', '总览'];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: _tabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TabBar(
+          controller: _tabCtrl,
+          isScrollable: true,
+          indicatorColor: _kickAccent,
+          labelColor: _kickAccent,
+          unselectedLabelColor: Colors.white54,
+          labelStyle:
+              const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          tabs: _tabs.map((t) => Tab(text: t)).toList(),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: TabBarView(
+            controller: _tabCtrl,
+            children: const [
+              SingleChildScrollView(child: _KickOneRailLab()),
+              SingleChildScrollView(child: _KickTwoRailLab()),
+              SingleChildScrollView(child: _KickMultiRailLab()),
+              SingleChildScrollView(child: _KickOverviewLab()),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One-rail kick lab (一库解球)
+// ---------------------------------------------------------------------------
+
+class _KickOneRailLab extends StatefulWidget {
+  const _KickOneRailLab();
+
+  @override
+  State<_KickOneRailLab> createState() => _KickOneRailLabState();
+}
+
+class _KickOneRailLabState extends State<_KickOneRailLab> {
+  _KickMethod _method = _KickMethod.mirror;
+  double _cueX = 0.18;
+  double _cueDist = 0.42;
+  double _objX = 0.72;
+  double _objDist = 0.30;
+  double _blockerT = 0.45;
+  double _contactOffset = 0;
+  bool _showMirror = true;
+
+  static const Map<_KickMethod, String> _descs = {
+    _KickMethod.mirror:
+        '把目标球对库边（青色虚线＝库边鼻线）做镜像，白球→镜像点的连线与库边的交点就是瞄准点。\n本质是“入射角≈反射角”，是所有解球方法的基础。',
+    _KickMethod.ratio:
+        '白球离库 d1、目标球离库 d2，瞄准点按 d1 : d2 的比例，分割两球在库边投影之间的间距。\n这是镜像法的精确数学版；两球等距时退化为中点法（平行法）。',
+    _KickMethod.contact:
+        '镜像的对象不是目标球中心，而是你想打的接触点（黄色虚线圈＝假想球位）。\n实战解球常需薄碰：避免碰错球、避免解完再被做。沿库边平移镜像目标即可选择薄厚。',
+    _KickMethod.midpoint:
+        '两球离库等距时的特例：直接瞄两球对库边投影连线的中点，零计算、出手最快。\n不等距时会打偏——切到本模式拖动“白球离库”滑块，直观看偏差如何随距离差变大。',
+    _KickMethod.diamond:
+        '把瞄准点“翻译”成库边上的实体钻石点（长库 7 个点，把库边八等分）。\n实战先看镜像方向、再取最近的钻石点做参照；图中展示取整带来的偏差——偏差越小说明该站位越适合直接用钻石点。',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final gx = _objX +
+        (_method == _KickMethod.contact ? _contactOffset : 0) *
+            2 *
+            _KickOneRailPainter.rN;
+    final ax = (_objDist * _cueX + _cueDist * gx) / (_cueDist + _objDist);
+    final equidistant = (_cueDist - _objDist).abs() < 0.02;
+    final blocked = _KickOneRailPainter.checkBlocked(
+        cueX: _cueX,
+        cueDist: _cueDist,
+        gx: gx,
+        objDist: _objDist,
+        blockerT: _blockerT);
+
+    final midX = (_cueX + gx) / 2;
+    final midLandingX = midX + (midX - _cueX) * _objDist / _cueDist;
+    final diamondIdx = (ax * 8).round().clamp(1, 7);
+    final diamondX = diamondIdx / 8;
+    final diamondLandingX =
+        diamondX + (diamondX - _cueX) * _objDist / _cueDist;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          _kickMethodChip('镜像法', _method == _KickMethod.mirror,
+              () => setState(() => _method = _KickMethod.mirror)),
+          _kickMethodChip('比例分点', _method == _KickMethod.ratio,
+              () => setState(() => _method = _KickMethod.ratio)),
+          _kickMethodChip('接触点镜像', _method == _KickMethod.contact,
+              () => setState(() => _method = _KickMethod.contact)),
+        ]),
+        const SizedBox(height: 6),
+        Row(children: [
+          _kickMethodChip('中点法', _method == _KickMethod.midpoint,
+              () => setState(() => _method = _KickMethod.midpoint)),
+          _kickMethodChip('钻石点法', _method == _KickMethod.diamond,
+              () => setState(() => _method = _KickMethod.diamond)),
+          const Expanded(child: SizedBox.shrink()),
+        ]),
+        const SizedBox(height: 8),
+        _kickSliderRow('白球横向', _cueX, 0.05, 0.55,
+            (v) => setState(() => _cueX = v),
+            valueText: (_cueX * 100).toStringAsFixed(0)),
+        _kickSliderRow('白球离库', _cueDist, 0.08, 0.65,
+            (v) => setState(() => _cueDist = v),
+            valueText: (_cueDist * 100).toStringAsFixed(0)),
+        _kickSliderRow('目标离库', _objDist, 0.08, 0.50,
+            (v) => setState(() => _objDist = v),
+            valueText: (_objDist * 100).toStringAsFixed(0)),
+        _kickSliderRow('障碍位置', _blockerT, 0.25, 0.75,
+            (v) => setState(() => _blockerT = v),
+            valueText: (_blockerT * 100).toStringAsFixed(0)),
+        if (_method == _KickMethod.contact)
+          _kickSliderRow('薄碰偏移', _contactOffset, -1, 1,
+              (v) => setState(() => _contactOffset = v),
+              divisions: 40, valueText: _contactOffset.toStringAsFixed(2)),
+        _kickToggleRow('显示镜像构造线', _showMirror,
+            (v) => setState(() => _showMirror = v)),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _KickOneRailPainter(
+              cueX: _cueX,
+              cueDist: _cueDist,
+              objX: _objX,
+              objDist: _objDist,
+              blockerT: _blockerT,
+              contactOffset: _method == _KickMethod.contact ? _contactOffset : 0,
+              method: _method,
+              showMirror: _showMirror,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          if (_method == _KickMethod.midpoint) ...[
+            _kickChip('中点 ≈ 底库第 ${(midX * 8).toStringAsFixed(1)} 钻石点', _kickAim),
+            if (equidistant)
+              _kickChip('等距 → 正中目标', _kickPath)
+            else
+              _kickChip(
+                  '非等距！偏差 ≈ ${(((midLandingX - gx) / (2 * _KickOneRailPainter.rN)).abs()).toStringAsFixed(1)} 球宽',
+                  _kickBlock),
+          ] else if (_method == _KickMethod.diamond) ...[
+            _kickChip('取整到第 $diamondIdx 钻石点', _kickAim),
+            _kickChip(
+                '取整偏差 ≈ ${(((diamondLandingX - gx) / (2 * _KickOneRailPainter.rN)).abs()).toStringAsFixed(1)} 球宽',
+                (diamondLandingX - gx).abs() < 2 * _KickOneRailPainter.rN
+                    ? _kickPath
+                    : _kickBlock),
+          ] else ...[
+            _kickChip('瞄准点 ≈ 底库第 ${(ax * 8).toStringAsFixed(1)} 钻石点', _kickAim),
+            if (equidistant) _kickChip('等距 → 中点法成立', _kickPath),
+          ],
+          if (blocked) _kickChip('解球线路也被挡！换薄碰或多走一库', _kickBlock),
+        ]),
+        const SizedBox(height: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _LegendItem(color: _kickPath, label: '实际解球线路（绿）'),
+            _LegendItem(color: _kickMirror, label: '镜像轴＝库边鼻线（青虚线）'),
+            _LegendItem(color: Colors.white54, label: '白球→镜像点 瞄准线（白虚线）'),
+            _LegendItem(color: _kickAim, label: '瞄准点（橙）'),
+            _LegendItem(color: Color(0xFFFFEB3B), label: '目标球（黄）'),
+            _LegendItem(color: _kickBlock, label: '障碍球（红）'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _kickInfoCard(_kickAccent, _descs[_method]!),
+        _kickInfoCard(_kickAim,
+            '修正因素（所有方法通用）：\n① 力度：发力越猛反弹角越小——解球统一用中小力；\n② 塞：顺塞扩大反弹角、反塞缩小，解球尽量不带塞；\n③ 镜像轴是库边鼻线（球碰胶条的位置），不是木框边；\n④ 每张台胶条弹性不同，在自己常用台上积累修正值。'),
+      ],
+    );
+  }
+}
+
+class _KickOneRailPainter extends CustomPainter {
+  _KickOneRailPainter({
+    required this.cueX,
+    required this.cueDist,
+    required this.objX,
+    required this.objDist,
+    required this.blockerT,
+    required this.contactOffset,
+    required this.method,
+    required this.showMirror,
+  });
+
+  final double cueX;
+  final double cueDist;
+  final double objX;
+  final double objDist;
+  final double blockerT;
+  final double contactOffset;
+  final _KickMethod method;
+  final bool showMirror;
+
+  /// 球半径（以打球区宽度归一化）
+  static const double rN = 0.028;
+
+  // 与 paint() 布局一致的画布单位缩放（14:10）
+  static const double _kx = 14 * 0.80;
+  static const double _ky = 10 * 0.56;
+
+  static bool checkBlocked({
+    required double cueX,
+    required double cueDist,
+    required double gx,
+    required double objDist,
+    required double blockerT,
+  }) {
+    Offset pt(double x, double y) => Offset(x * _kx, -y * _ky);
+    final c = pt(cueX, cueDist);
+    final o = pt(gx, objDist);
+    final ax = (objDist * cueX + cueDist * gx) / (cueDist + objDist);
+    final a = pt(ax, 0);
+    final b = c + (o - c) * blockerT;
+    final rr = rN * _kx * 2;
+    return _kickSegDist(b, c, a) < rr || _kickSegDist(b, a, o) < rr;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final railW = math.min(w, h) * 0.055;
+    final play = Rect.fromLTWH(w * 0.10, h * 0.05, w * 0.80, h * 0.56);
+    _kickDrawTable(canvas, size, play);
+    _kickDrawDiamonds(canvas, play, railW);
+
+    Offset pt(double x, double y) =>
+        Offset(play.left + x * play.width, play.bottom - y * play.height);
+
+    final r = play.width * rN;
+    final C = pt(cueX, cueDist);
+    final O = pt(objX, objDist);
+    final gx = objX + contactOffset * 2 * rN;
+    final G = pt(gx, objDist);
+    final Gm = pt(gx, -objDist);
+    final ax = (objDist * cueX + cueDist * gx) / (cueDist + objDist);
+    final A = pt(ax, 0);
+    double px = ax;
+    if (method == _KickMethod.midpoint) px = (cueX + gx) / 2;
+    if (method == _KickMethod.diamond) {
+      px = (ax * 8).round().clamp(1, 7) / 8;
+    }
+    final P = pt(px, 0);
+    final landingX = px + (px - cueX) * objDist / cueDist;
+    final L = pt(landingX, objDist);
+    final onTarget = (landingX - gx).abs() < 2 * rN;
+    final B = C + (O - C) * blockerT;
+    final blocked = _kickSegDist(B, C, P) < r * 2 ||
+        _kickSegDist(B, P, L) < r * 2;
+
+    // 镜像轴 = 库边鼻线
+    _kickDrawDash(canvas, Offset(0, play.bottom), Offset(w, play.bottom),
+        Paint()
+          ..color = _kickMirror.withValues(alpha: 0.85)
+          ..strokeWidth = 1.6,
+        dash: 10,
+        gap: 6);
+
+    // 台外镜像区
+    final zoneTop = play.bottom + railW * 1.35;
+    final zone = Rect.fromLTRB(play.left, zoneTop, play.right, h - 6);
+    canvas.drawRRect(RRect.fromRectAndRadius(zone, const Radius.circular(8)),
+        Paint()..color = Colors.white.withValues(alpha: 0.04));
+    _kickDrawText(canvas, '台外镜像区', Offset(zone.right - 36, zone.top + 10),
+        color: Colors.white24, fontSize: 9);
+
+    // 被挡的直线
+    _kickDrawDash(canvas, C, O,
+        Paint()
+          ..color = _kickBlock.withValues(alpha: 0.5)
+          ..strokeWidth = 1.5);
+    _kickDrawText(canvas, '直线被挡', B + Offset(0, -r * 2.2),
+        color: _kickBlock, fontSize: 9);
+
+    // 镜像构造
+    if (showMirror) {
+      _kickDrawDash(canvas, G, Gm,
+          Paint()
+            ..color = _kickMirror.withValues(alpha: 0.45)
+            ..strokeWidth = 1.2);
+      _kickDrawDash(canvas, C, Gm,
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.5)
+            ..strokeWidth = 1.4);
+      _kickDrawBall(canvas, Gm, r, _kickMirror, hollow: true);
+      _kickDrawText(
+          canvas,
+          method == _KickMethod.contact ? '接触点镜像' : '镜像点',
+          Gm + Offset(0, r * 2.0),
+          color: _kickMirror,
+          fontSize: 10);
+    }
+
+    // 接触法的假想目标
+    if (method == _KickMethod.contact) {
+      _kickDrawBall(canvas, G, r * 0.8, const Color(0xFFFFEB3B), hollow: true);
+      _kickDrawDash(canvas, O, G,
+          Paint()
+            ..color = const Color(0xFFFFEB3B).withValues(alpha: 0.6)
+            ..strokeWidth = 1.2);
+    }
+
+    // 比例分点法标注
+    if (method == _KickMethod.ratio) {
+      final Pc = pt(cueX, 0);
+      final Po = pt(gx, 0);
+      canvas.drawLine(Pc, Po,
+          Paint()
+            ..color = _kickAim.withValues(alpha: 0.85)
+            ..strokeWidth = 3);
+      _kickDrawDash(canvas, C, Pc,
+          Paint()
+            ..color = _kickMirror.withValues(alpha: 0.6)
+            ..strokeWidth = 1.2);
+      _kickDrawDash(canvas, O, Po,
+          Paint()
+            ..color = _kickMirror.withValues(alpha: 0.6)
+            ..strokeWidth = 1.2);
+      _kickDrawText(canvas, 'd1', (C + Pc) / 2 + Offset(-14, 0),
+          color: _kickMirror, fontSize: 9);
+      _kickDrawText(canvas, 'd2', (O + Po) / 2 + Offset(14, 0),
+          color: _kickMirror, fontSize: 9);
+      _kickDrawText(canvas, 'd1:d2 分点', A + Offset(0, r * 3.6),
+          color: _kickAim, fontSize: 9);
+    }
+
+    // 中点法标注
+    if (method == _KickMethod.midpoint) {
+      final Pc = pt(cueX, 0);
+      final Po = pt(gx, 0);
+      _kickDrawDash(canvas, C, Pc,
+          Paint()
+            ..color = _kickMirror.withValues(alpha: 0.6)
+            ..strokeWidth = 1.2);
+      _kickDrawDash(canvas, O, Po,
+          Paint()
+            ..color = _kickMirror.withValues(alpha: 0.6)
+            ..strokeWidth = 1.2);
+      canvas.drawLine(Pc, Po,
+          Paint()
+            ..color = _kickMirror.withValues(alpha: 0.3)
+            ..strokeWidth = 2);
+      _kickDrawText(canvas, '两投影连线的中点', P + Offset(0, r * 3.6),
+          color: _kickAim, fontSize: 9);
+    }
+
+    // 钻石点法标注
+    if (method == _KickMethod.diamond) {
+      for (int i = 1; i <= 7; i++) {
+        final D = pt(i / 8, 0);
+        canvas.drawCircle(D, r * 0.32,
+            Paint()..color = Colors.white.withValues(alpha: 0.35));
+      }
+      canvas.drawCircle(P, r * 0.75,
+          Paint()
+            ..color = _kickAim
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2);
+      _kickDrawText(canvas, '第 ${(px * 8).toStringAsFixed(0)} 钻石点',
+          P + Offset(0, r * 3.6),
+          color: _kickAim, fontSize: 9);
+    }
+
+    // 瞄准点
+    canvas.drawCircle(P, r * 0.5, Paint()..color = _kickAim);
+    canvas.drawCircle(P, r * 0.95,
+        Paint()
+          ..color = _kickAim
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6);
+    _kickDrawText(canvas, '瞄准点', P + Offset(0, r * 2.2),
+        color: _kickAim, fontSize: 10);
+    // 近似方法时显示真实瞄准点作对比
+    if ((px - ax).abs() > 0.001) {
+      canvas.drawCircle(A, r * 0.35,
+          Paint()..color = Colors.white.withValues(alpha: 0.45));
+      _kickDrawText(canvas, '真实瞄准点', A + Offset(r * 3.4, r * 1.4),
+          color: Colors.white54, fontSize: 8);
+    }
+
+    // 实际路径 + 等角标注
+    final pathPaint = Paint()
+      ..color = (onTarget && !blocked) ? _kickPath : _kickBlock
+      ..strokeWidth = 2.4;
+    _kickDrawArrow(canvas, C, P, pathPaint);
+    _kickDrawArrow(canvas, P, L, pathPaint);
+    if (!onTarget) {
+      _kickDrawDash(canvas, L, O,
+          Paint()
+            ..color = _kickBlock.withValues(alpha: 0.8)
+            ..strokeWidth = 1.6);
+      _kickDrawBall(canvas, L, r, _kickBlock, hollow: true);
+      _kickDrawText(canvas, '白球到此(偏)', L + Offset(0, r * 2.0),
+          color: _kickBlock, fontSize: 9);
+    }
+    final phi1 = math.atan2(C.dy - P.dy, C.dx - P.dx);
+    final phi2 = math.atan2(L.dy - P.dy, L.dx - P.dx);
+    const normalA = -math.pi / 2;
+    final arcRect = Rect.fromCircle(center: P, radius: r * 1.8);
+    final arcPaint = Paint()
+      ..color = _kickAim.withValues(alpha: 0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    canvas.drawArc(arcRect, math.min(phi1, normalA), (phi1 - normalA).abs(),
+        false, arcPaint);
+    canvas.drawArc(arcRect, math.min(phi2, normalA), (phi2 - normalA).abs(),
+        false, arcPaint);
+    _kickDrawDash(canvas, P, P + Offset(0, -r * 2.6),
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.35)
+          ..strokeWidth = 1);
+    _kickDrawText(canvas, '∠i≈∠r', P + Offset(0, -r * 3.5),
+        color: _kickAim, fontSize: 9);
+
+    // 球
+    _kickDrawBall(canvas, O, r, const Color(0xFFFFEB3B));
+    _kickDrawBall(canvas, B, r, _kickBlock);
+    _kickDrawBall(canvas, C, r, Colors.white);
+    _kickDrawText(canvas, '目标球', O + Offset(r * 2.6, 0),
+        color: const Color(0xFFFFEB3B), fontSize: 9);
+    _kickDrawText(canvas, '障碍球', B + Offset(r * 2.6, 0),
+        color: _kickBlock, fontSize: 9);
+    _kickDrawText(canvas, '白球', C + Offset(-r * 2.6, 0),
+        color: Colors.white70, fontSize: 9);
+
+    if (blocked) {
+      _kickDrawText(canvas, '解球线路也被挡!', Offset(w * 0.5, play.top + 10),
+          color: _kickBlock, fontSize: 11);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_KickOneRailPainter old) =>
+      old.cueX != cueX ||
+      old.cueDist != cueDist ||
+      old.objX != objX ||
+      old.objDist != objDist ||
+      old.blockerT != blockerT ||
+      old.contactOffset != contactOffset ||
+      old.method != method ||
+      old.showMirror != showMirror;
+}
+
+// ---------------------------------------------------------------------------
+// Two-rail kick lab (两库解球)
+// ---------------------------------------------------------------------------
+
+class _KickTwoRailLab extends StatefulWidget {
+  const _KickTwoRailLab();
+
+  @override
+  State<_KickTwoRailLab> createState() => _KickTwoRailLabState();
+}
+
+class _KickTwoRailLabState extends State<_KickTwoRailLab> {
+  bool _cornerMode = true; // true = 角部两库, false = 平行两库
+  int _method2 = 0; // 0 = 降维法, 1 = 角点对称/平行路线
+  bool _showConstruction = true;
+
+  double _cueX = 0.78;
+  double _cueY = 0.22;
+  double _objX = 0.20;
+  double _objY = 0.58;
+  double _blockerT = 0.45;
+
+  void _switchMode(bool corner) {
+    setState(() {
+      _cornerMode = corner;
+      _method2 = 0;
+      if (corner) {
+        _cueX = 0.78;
+        _cueY = 0.22;
+        _objX = 0.20;
+        _objY = 0.58;
+      } else {
+        _cueX = 0.25;
+        _cueY = 0.10;
+        _objX = 0.75;
+        _objY = 0.16;
+      }
+    });
+  }
+
+  static const Map<String, String> _cornerDescs = {
+    'dim':
+        '第一步：把目标球对第二库（左库）镜像 → O′；\n第二步：两库问题变成一库问题——白球经第一库（底库）去碰“镜像后的 O′”。\n把 O′ 再对底库镜像得 O″，白球直接瞄 O″ 即可，两个碰库点自动落在瞄准线上。',
+    'sym':
+        '相邻两库＝角反射器：两次垂直反射等效于绕角点旋转 180°。\n所以 O″ 就是目标球关于角点的对称点（角点是 OO″ 的中点）。\n回球路线与出球路线平行、方向相反；对称站位时 C-P1-P2-O 正好构成平行四边形。',
+  };
+  static const Map<String, String> _parallelDescs = {
+    'dim':
+        '第一步：把目标球对第二库（底库）镜像 → O′；\n第二步：白球经顶库去碰 O′——两库变一库。\n把 O′ 再对顶库镜像得 O″，白球直接瞄 O″。',
+    'sym':
+        '两次平行库边反射后方向不变：出球路线 ∥ 回球路线（同向）。\n等距站位时路径左右对称，可用中点经验快速瞄准。\n这是跨台远距离解球（斯诺克常见）的主力方法。',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    String railInfo;
+    bool blocked;
+    if (_cornerMode) {
+      final t1 = _cueY / (_cueY + _objY);
+      final p1x = _cueX + t1 * (-_objX - _cueX);
+      final t2 = _cueX / (_cueX + _objX);
+      final p2y = -(_cueY + t2 * (-_objY - _cueY));
+      railInfo =
+          '底库碰点 ≈ 第 ${(p1x * 8).toStringAsFixed(1)} 钻石点 · 左库碰点 ≈ 第 ${(p2y * 4).toStringAsFixed(1)} 钻石点';
+      blocked = _KickTwoRailPainter.cornerBlocked(
+          cueX: _cueX,
+          cueY: _cueY,
+          objX: _objX,
+          objY: _objY,
+          blockerT: _blockerT);
+    } else {
+      final t1 = (1 - _cueY) / (2 + _objY - _cueY);
+      final p1x = _cueX + t1 * (_objX - _cueX);
+      final t2 = (2 - _cueY) / (2 + _objY - _cueY);
+      final p2x = _cueX + t2 * (_objX - _cueX);
+      railInfo =
+          '顶库碰点 ≈ 第 ${(p1x * 8).toStringAsFixed(1)} 钻石点 · 底库碰点 ≈ 第 ${(p2x * 8).toStringAsFixed(1)} 钻石点';
+      blocked = _KickTwoRailPainter.parallelBlocked(
+          cueX: _cueX,
+          cueY: _cueY,
+          objX: _objX,
+          objY: _objY,
+          blockerT: _blockerT);
+    }
+    final descs = _cornerMode ? _cornerDescs : _parallelDescs;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          _kickMethodChip('角部两库（反角球）', _cornerMode,
+              () => _switchMode(true)),
+          _kickMethodChip('平行两库（跨台）', !_cornerMode,
+              () => _switchMode(false)),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          _kickMethodChip('降维法', _method2 == 0,
+              () => setState(() => _method2 = 0)),
+          _kickMethodChip(_cornerMode ? '角点对称/平行四边形' : '平行路线法',
+              _method2 == 1, () => setState(() => _method2 = 1)),
+        ]),
+        const SizedBox(height: 8),
+        _kickSliderRow('白球横向', _cueX, _cornerMode ? 0.35 : 0.08, 0.92,
+            (v) => setState(() => _cueX = v),
+            valueText: (_cueX * 100).toStringAsFixed(0)),
+        _kickSliderRow('白球纵向', _cueY, _cornerMode ? 0.08 : 0.05,
+            _cornerMode ? 0.60 : 0.28,
+            (v) => setState(() => _cueY = v),
+            valueText: (_cueY * 100).toStringAsFixed(0)),
+        _kickSliderRow('目标横向', _objX, _cornerMode ? 0.05 : 0.08,
+            _cornerMode ? 0.65 : 0.92,
+            (v) => setState(() => _objX = v),
+            valueText: (_objX * 100).toStringAsFixed(0)),
+        _kickSliderRow('目标纵向', _objY, _cornerMode ? 0.30 : 0.05,
+            _cornerMode ? 0.62 : 0.28,
+            (v) => setState(() => _objY = v),
+            valueText: (_objY * 100).toStringAsFixed(0)),
+        _kickSliderRow('障碍位置', _blockerT, 0.20, 0.80,
+            (v) => setState(() => _blockerT = v),
+            valueText: (_blockerT * 100).toStringAsFixed(0)),
+        _kickToggleRow('显示镜像构造', _showConstruction,
+            (v) => setState(() => _showConstruction = v)),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _KickTwoRailPainter(
+              cornerMode: _cornerMode,
+              cueX: _cueX,
+              cueY: _cueY,
+              objX: _objX,
+              objY: _objY,
+              blockerT: _blockerT,
+              method2: _method2,
+              showConstruction: _showConstruction,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          _kickChip(railInfo, _kickAim),
+          if (blocked) _kickChip('解球线路被挡！换更薄接触或多走一库', _kickBlock),
+        ]),
+        const SizedBox(height: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _LegendItem(color: _kickPath, label: '实际解球线路（绿）'),
+            _LegendItem(color: _kickMirror, label: '镜像轴＝库边鼻线（青虚线）'),
+            _LegendItem(color: _kickMirror, label: 'O′ 一次镜像点（青空心）'),
+            _LegendItem(color: _kickAccent, label: 'O″ 二次镜像/角点对称点（紫空心）'),
+            _LegendItem(color: Colors.white54, label: '白球→O″ 瞄准线（白虚线）'),
+            _LegendItem(color: _kickAim, label: '碰库点（橙）'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _kickInfoCard(_kickAccent, descs[_method2 == 0 ? 'dim' : 'sym']!),
+        _kickInfoCard(_kickAim,
+            '两库修正：误差会叠加！\n① 碰两个库，力度和塞的影响翻倍——更要统一中小力、不带塞；\n② 镜像轴同样是库边鼻线；\n③ 解球线路更长，务必沿全程检查是否被障碍球二次遮挡。'),
+      ],
+    );
+  }
+}
+
+class _KickTwoRailPainter extends CustomPainter {
+  _KickTwoRailPainter({
+    required this.cornerMode,
+    required this.cueX,
+    required this.cueY,
+    required this.objX,
+    required this.objY,
+    required this.blockerT,
+    required this.method2,
+    required this.showConstruction,
+  });
+
+  final bool cornerMode;
+  final double cueX;
+  final double cueY;
+  final double objX;
+  final double objY;
+  final double blockerT;
+  final int method2;
+  final bool showConstruction;
+
+  static const double rN = 0.028;
+
+  static bool cornerBlocked({
+    required double cueX,
+    required double cueY,
+    required double objX,
+    required double objY,
+    required double blockerT,
+  }) {
+    const kx = 14 * 0.56;
+    const ky = 10 * 0.52;
+    Offset pt(double x, double y) => Offset(x * kx, -y * ky);
+    final c = pt(cueX, cueY);
+    final o = pt(objX, objY);
+    final t1 = cueY / (cueY + objY);
+    final p1 = pt(cueX + t1 * (-objX - cueX), 0);
+    final t2 = cueX / (cueX + objX);
+    final p2 = pt(0, -(cueY + t2 * (-objY - cueY)));
+    final b = c + (o - c) * blockerT;
+    final rr = rN * kx * 2;
+    return _kickSegDist(b, c, p1) < rr ||
+        _kickSegDist(b, p1, p2) < rr ||
+        _kickSegDist(b, p2, o) < rr;
+  }
+
+  static bool parallelBlocked({
+    required double cueX,
+    required double cueY,
+    required double objX,
+    required double objY,
+    required double blockerT,
+  }) {
+    const kx = 14 * 0.40;
+    const ky = 10 * 0.28;
+    Offset pt(double x, double y) => Offset(x * kx, -y * ky);
+    final c = pt(cueX, cueY);
+    final o = pt(objX, objY);
+    final t1 = (1 - cueY) / (2 + objY - cueY);
+    final p1 = pt(cueX + t1 * (objX - cueX), 1);
+    final t2 = (2 - cueY) / (2 + objY - cueY);
+    final p2 = pt(cueX + t2 * (objX - cueX), 0);
+    final b = c + (o - c) * blockerT;
+    final rr = rN * kx * 2;
+    return _kickSegDist(b, c, p1) < rr ||
+        _kickSegDist(b, p1, p2) < rr ||
+        _kickSegDist(b, p2, o) < rr;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final railW = math.min(w, h) * 0.055;
+    final play = cornerMode
+        ? Rect.fromLTWH(w * 0.40, h * 0.06, w * 0.56, h * 0.52)
+        : Rect.fromLTWH(w * 0.30, h * 0.36, w * 0.40, h * 0.28);
+    _kickDrawTable(canvas, size, play);
+    _kickDrawDiamonds(canvas, play, railW);
+
+    Offset pt(double x, double y) =>
+        Offset(play.left + x * play.width, play.bottom - y * play.height);
+
+    final r = play.width * rN;
+    final C = pt(cueX, cueY);
+    final O = pt(objX, objY);
+    final B = C + (O - C) * blockerT;
+
+    final axisPaint = Paint()
+      ..color = _kickMirror.withValues(alpha: 0.8)
+      ..strokeWidth = 1.5;
+    _kickDrawDash(canvas, Offset(0, play.bottom), Offset(w, play.bottom),
+        axisPaint,
+        dash: 10, gap: 6);
+
+    Offset O1, O2, P1, P2;
+    if (cornerMode) {
+      _kickDrawDash(canvas, Offset(play.left, 0), Offset(play.left, h),
+          axisPaint,
+          dash: 10, gap: 6);
+      O1 = pt(-objX, objY);
+      O2 = pt(-objX, -objY);
+      final t1 = cueY / (cueY + objY);
+      P1 = pt(cueX + t1 * (-objX - cueX), 0);
+      final t2 = cueX / (cueX + objX);
+      final p2y = -(cueY + t2 * (-objY - cueY));
+      P2 = pt(0, p2y);
+    } else {
+      _kickDrawDash(canvas, Offset(0, play.top), Offset(w, play.top),
+          axisPaint,
+          dash: 10, gap: 6);
+      O1 = pt(objX, -objY);
+      O2 = pt(objX, 2 + objY);
+      final t1 = (1 - cueY) / (2 + objY - cueY);
+      P1 = pt(cueX + t1 * (objX - cueX), 1);
+      final t2 = (2 - cueY) / (2 + objY - cueY);
+      P2 = pt(cueX + t2 * (objX - cueX), 0);
+    }
+
+    final blocked = _kickSegDist(B, C, P1) < r * 2 ||
+        _kickSegDist(B, P1, P2) < r * 2 ||
+        _kickSegDist(B, P2, O) < r * 2;
+
+    // 被挡的直线
+    _kickDrawDash(canvas, C, O,
+        Paint()
+          ..color = _kickBlock.withValues(alpha: 0.5)
+          ..strokeWidth = 1.5);
+    _kickDrawText(canvas, '直线被挡', B + Offset(0, -r * 2.2),
+        color: _kickBlock, fontSize: 9);
+
+    // 镜像构造
+    if (showConstruction) {
+      _kickDrawDash(canvas, C, O2,
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.5)
+            ..strokeWidth = 1.4);
+      _kickDrawBall(canvas, O1, r, _kickMirror, hollow: true);
+      _kickDrawText(canvas, 'O′ 一次镜像', O1 + Offset(0, r * 2.1),
+          color: _kickMirror, fontSize: 9);
+      _kickDrawBall(canvas, O2, r, _kickAccent, hollow: true);
+      _kickDrawText(
+          canvas,
+          cornerMode ? 'O″ 角点对称点' : 'O″ 二次镜像',
+          O2 + Offset(0, cornerMode ? r * 2.1 : -r * 2.1),
+          color: _kickAccent,
+          fontSize: 9);
+      if (cornerMode) {
+        final cornerPt = pt(0, 0);
+        _kickDrawDash(canvas, O, O2,
+            Paint()
+              ..color = _kickAccent.withValues(alpha: 0.5)
+              ..strokeWidth = 1.2);
+        canvas.drawCircle(cornerPt, r * 0.5, Paint()..color = _kickAccent);
+        _kickDrawText(canvas, '角点=对称中心',
+            cornerPt + Offset(r * 3.6, -r * 1.4),
+            color: _kickAccent, fontSize: 9);
+      } else {
+        _kickDrawDash(canvas, O, O1,
+            Paint()
+              ..color = _kickMirror.withValues(alpha: 0.45)
+              ..strokeWidth = 1.2);
+        _kickDrawDash(canvas, O1, O2,
+            Paint()
+              ..color = _kickAccent.withValues(alpha: 0.45)
+              ..strokeWidth = 1.2);
+      }
+    }
+
+    // 平行四边形 / 平行路线 叠加
+    if (method2 == 1) {
+      if (cornerMode) {
+        final quadPaint = Paint()
+          ..color = _kickAccent.withValues(alpha: 0.6)
+          ..strokeWidth = 1.3;
+        _kickDrawDash(canvas, C, P1, quadPaint);
+        _kickDrawDash(canvas, P1, P2, quadPaint);
+        _kickDrawDash(canvas, P2, O, quadPaint);
+        _kickDrawDash(canvas, O, C, quadPaint);
+        final cx = (C.dx + P1.dx + P2.dx + O.dx) / 4;
+        final cy = (C.dy + P1.dy + P2.dy + O.dy) / 4;
+        _kickDrawText(canvas, '回球 ∥ 出球（反向）', Offset(cx, cy),
+            color: _kickAccent, fontSize: 9);
+      } else {
+        final m1 = C + (P1 - C) * 0.5;
+        final m2 = P2 + (O - P2) * 0.5;
+        final mk = Paint()
+          ..color = _kickAccent
+          ..strokeWidth = 2;
+        _kickDrawArrow(canvas, m1 - (P1 - C) * 0.12, m1 + (P1 - C) * 0.12,
+            mk,
+            headLen: 6);
+        _kickDrawArrow(canvas, m2 - (O - P2) * 0.12, m2 + (O - P2) * 0.12,
+            mk,
+            headLen: 6);
+        _kickDrawText(canvas, '出球 ∥ 回球（同向）',
+            Offset(w * 0.5, play.top - r * 3),
+            color: _kickAccent, fontSize: 9);
+      }
+    }
+
+    // 碰库点
+    canvas.drawCircle(P1, r * 0.45, Paint()..color = _kickAim);
+    canvas.drawCircle(P2, r * 0.45, Paint()..color = _kickAim);
+    if (cornerMode) {
+      _kickDrawText(canvas, '碰库点1', P1 + Offset(0, r * 2.2),
+          color: _kickAim, fontSize: 9);
+      _kickDrawText(canvas, '碰库点2', P2 + Offset(-r * 2.8, 0),
+          color: _kickAim, fontSize: 9);
+    } else {
+      _kickDrawText(canvas, '碰库点1', P1 + Offset(0, -r * 2.2),
+          color: _kickAim, fontSize: 9);
+      _kickDrawText(canvas, '碰库点2', P2 + Offset(0, r * 2.2),
+          color: _kickAim, fontSize: 9);
+    }
+
+    // 实际路径
+    final pathPaint = Paint()
+      ..color = blocked ? _kickBlock : _kickPath
+      ..strokeWidth = 2.4;
+    _kickDrawArrow(canvas, C, P1, pathPaint);
+    _kickDrawArrow(canvas, P1, P2, pathPaint);
+    _kickDrawArrow(canvas, P2, O, pathPaint);
+
+    // 球
+    _kickDrawBall(canvas, O, r, const Color(0xFFFFEB3B));
+    _kickDrawBall(canvas, B, r, _kickBlock);
+    _kickDrawBall(canvas, C, r, Colors.white);
+    _kickDrawText(canvas, '目标球', O + Offset(r * 2.6, 0),
+        color: const Color(0xFFFFEB3B), fontSize: 9);
+    _kickDrawText(canvas, '障碍球', B + Offset(r * 2.6, 0),
+        color: _kickBlock, fontSize: 9);
+    _kickDrawText(canvas, '白球', C + Offset(-r * 2.6, 0),
+        color: Colors.white70, fontSize: 9);
+
+    if (blocked) {
+      _kickDrawText(canvas, '解球线路也被挡!', Offset(w * 0.5, h * 0.025),
+          color: _kickBlock, fontSize: 11);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_KickTwoRailPainter old) =>
+      old.cornerMode != cornerMode ||
+      old.cueX != cueX ||
+      old.cueY != cueY ||
+      old.objX != objX ||
+      old.objY != objY ||
+      old.blockerT != blockerT ||
+      old.method2 != method2 ||
+      old.showConstruction != showConstruction;
+}
+
+// ---------------------------------------------------------------------------
+// Multi-rail kick lab (多库解球：三库及以上，广义镜像展开)
+// ---------------------------------------------------------------------------
+
+class _KickMultiRoute {
+  const _KickMultiRoute(this.name, this.rails, this.cue, this.obj, this.note);
+
+  final String name;
+  final List<int> rails; // 0=底 1=顶 2=左 3=右
+  final List<double> cue;
+  final List<double> obj;
+  final String note;
+}
+
+class _KickMultiSolve {
+  const _KickMultiSolve({
+    required this.imgs,
+    required this.contacts,
+    required this.feasible,
+    required this.failMsg,
+  });
+
+  final List<Offset> imgs; // imgs[k]=目标对 rails[k..n-1] 的镜像；imgs[0]=瞄准点
+  final List<Offset> contacts;
+  final bool feasible;
+  final String failMsg;
+}
+
+class _KickMultiRailLab extends StatefulWidget {
+  const _KickMultiRailLab();
+
+  @override
+  State<_KickMultiRailLab> createState() => _KickMultiRailLabState();
+}
+
+class _KickMultiRailLabState extends State<_KickMultiRailLab> {
+  static const Map<int, List<_KickMultiRoute>> _routes = {
+    3: [
+      _KickMultiRoute('底→左→顶', [0, 2, 1], [0.78, 0.20], [0.30, 0.62],
+          '绕近角三库：目标球贴顶库附近被挡时的经典解法，先打底库远离，再沿左库上到顶库。'),
+      _KickMultiRoute('底→顶→底', [0, 1, 0], [0.20, 0.30], [0.80, 0.42],
+          '两条长库之间折返：三库后球回到长库一侧，适合目标球贴长库但直线被挡。'),
+      _KickMultiRoute('左→底→右', [2, 0, 3], [0.30, 0.70], [0.62, 0.35],
+          '横穿短库方向的三库，适合障碍球堵在台子中部时绕行。'),
+    ],
+    4: [
+      _KickMultiRoute('绕台 底→左→顶→右', [0, 2, 1, 3], [0.80, 0.25], [0.55, 0.65],
+          '绕台一整圈：所有短路线都被挡时使用，绕台一周回球；误差已经很大。'),
+      _KickMultiRoute('长距折返 底→顶→底→顶', [0, 1, 0, 1], [0.15, 0.25], [0.70, 0.35],
+          '长库两次折返，跨台远距离解球的主力路线（斯诺克常见）。'),
+      _KickMultiRoute('横向折返 左→右→左→右', [2, 3, 2, 3], [0.25, 0.70], [0.40, 0.30],
+          '短库两次折返，横穿台面；长库折返角度不合适时的替代路线。'),
+    ],
+    5: [
+      _KickMultiRoute('绕台+1 底→左→顶→右→底', [0, 2, 1, 3, 0], [0.75, 0.30],
+          [0.50, 0.62], '绕台一整圈再多一库：四库仍差一点时的最后手段。'),
+      _KickMultiRoute('长距折返×2 底→顶→底→顶→底', [0, 1, 0, 1, 0], [0.12, 0.22],
+          [0.62, 0.32], '长库两次半折返，长距折返路线的延伸。'),
+    ],
+  };
+
+  static const List<String> _railNames = ['底库', '顶库', '左库', '右库'];
+
+  int _count = 3;
+  int _routeIdx = 0;
+  bool _showConstruction = true;
+
+  double _cueX = 0.78;
+  double _cueY = 0.20;
+  double _objX = 0.30;
+  double _objY = 0.62;
+  double _blockerT = 0.45;
+
+  _KickMultiRoute get _route => _routes[_count]![_routeIdx];
+
+  void _selectCount(int count) {
+    if (count == _count) return;
+    setState(() {
+      _count = count;
+      _routeIdx = 0;
+      _applyRouteDefaults();
+    });
+  }
+
+  void _selectRoute(int idx) {
+    if (idx == _routeIdx) return;
+    setState(() {
+      _routeIdx = idx;
+      _applyRouteDefaults();
+    });
+  }
+
+  void _applyRouteDefaults() {
+    final r = _routes[_count]![_routeIdx];
+    _cueX = r.cue[0];
+    _cueY = r.cue[1];
+    _objX = r.obj[0];
+    _objY = r.obj[1];
+    _blockerT = 0.45;
+  }
+
+  static Offset mirrorPt(Offset p, int rail) {
+    switch (rail) {
+      case 0:
+        return Offset(p.dx, -p.dy);
+      case 1:
+        return Offset(p.dx, 2 - p.dy);
+      case 2:
+        return Offset(-p.dx, p.dy);
+      default:
+        return Offset(2 - p.dx, p.dy);
+    }
+  }
+
+  /// 广义镜像展开：先对最后一库镜像，再把像对倒数第二库镜像……瞄准点＝最终的像。
+  /// 沿瞄准线逐段追踪：第 k 个碰到的库必须正好是路线第 k 库，否则该路线几何不可行。
+  static _KickMultiSolve solveMulti(
+      List<int> rails, double cueX, double cueY, double objX, double objY) {
+    final n = rails.length;
+    final cue = Offset(cueX, cueY);
+    final obj = Offset(objX, objY);
+    final imgs = List<Offset>.filled(n, Offset.zero);
+    var cur = obj;
+    for (int i = n - 1; i >= 0; i--) {
+      cur = mirrorPt(cur, rails[i]);
+      imgs[i] = cur;
+    }
+    final contacts = <Offset>[];
+    var from = cue;
+    for (int k = 0; k < n; k++) {
+      final dir = imgs[k] - from;
+      double bestT = double.infinity;
+      int bestRail = -1;
+      void consider(int rail, double t, Offset hit) {
+        if (t > 1e-9 &&
+            t < bestT &&
+            hit.dx >= -1e-9 &&
+            hit.dx <= 1 + 1e-9 &&
+            hit.dy >= -1e-9 &&
+            hit.dy <= 1 + 1e-9) {
+          bestT = t;
+          bestRail = rail;
+        }
+      }
+
+      if (dir.dy != 0) {
+        final tb = -from.dy / dir.dy; // 底库 y=0
+        consider(0, tb, from + dir * tb);
+        final tt = (1 - from.dy) / dir.dy; // 顶库 y=1
+        consider(1, tt, from + dir * tt);
+      }
+      if (dir.dx != 0) {
+        final tl = -from.dx / dir.dx; // 左库 x=0
+        consider(2, tl, from + dir * tl);
+        final tr = (1 - from.dx) / dir.dx; // 右库 x=1
+        consider(3, tr, from + dir * tr);
+      }
+      if (bestRail != rails[k]) {
+        final msg = bestRail < 0
+            ? '瞄准线走不到${_railNames[rails[k]]}'
+            : '瞄准线会先从${_railNames[bestRail]}出界（第${k + 1}库应是${_railNames[rails[k]]}）';
+        return _KickMultiSolve(
+            imgs: imgs, contacts: contacts, feasible: false, failMsg: msg);
+      }
+      final hit = from + dir * bestT;
+      contacts.add(hit);
+      from = hit;
+    }
+    return _KickMultiSolve(
+        imgs: imgs, contacts: contacts, feasible: true, failMsg: '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final solve = solveMulti(_route.rails, _cueX, _cueY, _objX, _objY);
+
+    bool blocked = false;
+    String contactInfo = '';
+    if (solve.feasible) {
+      final pts = <Offset>[
+        Offset(_cueX, _cueY),
+        ...solve.contacts,
+        Offset(_objX, _objY),
+      ];
+      final b = pts.first + (pts.last - pts.first) * _blockerT;
+      for (int i = 0; i + 1 < pts.length; i++) {
+        if (_kickSegDist(b, pts[i], pts[i + 1]) < 0.056) {
+          blocked = true;
+          break;
+        }
+      }
+      final names = <String>[];
+      for (int k = 0; k < _route.rails.length; k++) {
+        final rail = _route.rails[k];
+        final v =
+            rail <= 1 ? solve.contacts[k].dx * 8 : solve.contacts[k].dy * 4;
+        names.add('${_railNames[rail]} ${v.toStringAsFixed(1)}');
+      }
+      contactInfo = '碰点：${names.join(' · ')}';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          for (final c in _routes.keys)
+            _kickMethodChip('$c 库', _count == c, () => _selectCount(c)),
+        ]),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          for (int i = 0; i < _routes[_count]!.length; i++)
+            _kickMethodChipBody(_routes[_count]![i].name, _routeIdx == i,
+                () => _selectRoute(i)),
+        ]),
+        const SizedBox(height: 8),
+        _kickSliderRow('白球横向', _cueX, 0.05, 0.95,
+            (v) => setState(() => _cueX = v),
+            valueText: (_cueX * 100).toStringAsFixed(0)),
+        _kickSliderRow('白球纵向', _cueY, 0.05, 0.95,
+            (v) => setState(() => _cueY = v),
+            valueText: (_cueY * 100).toStringAsFixed(0)),
+        _kickSliderRow('目标横向', _objX, 0.05, 0.95,
+            (v) => setState(() => _objX = v),
+            valueText: (_objX * 100).toStringAsFixed(0)),
+        _kickSliderRow('目标纵向', _objY, 0.05, 0.95,
+            (v) => setState(() => _objY = v),
+            valueText: (_objY * 100).toStringAsFixed(0)),
+        _kickSliderRow('障碍位置', _blockerT, 0.20, 0.80,
+            (v) => setState(() => _blockerT = v),
+            valueText: (_blockerT * 100).toStringAsFixed(0)),
+        _kickToggleRow('显示镜像构造', _showConstruction,
+            (v) => setState(() => _showConstruction = v)),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _KickMultiRailPainter(
+              rails: _route.rails,
+              cueX: _cueX,
+              cueY: _cueY,
+              objX: _objX,
+              objY: _objY,
+              blockerT: _blockerT,
+              showConstruction: _showConstruction,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          if (solve.feasible) _kickChip(contactInfo, _kickAim),
+          if (!solve.feasible)
+            _kickChip('${solve.failMsg}，换路线或调站位', _kickBlock),
+          if (blocked)
+            _kickChip('解球线路被挡！换更薄接触或多走一库', _kickBlock),
+          _kickChip('$_count 库：误差随库数指数放大', _kickAccent),
+        ]),
+        const SizedBox(height: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _LegendItem(color: _kickPath, label: '实际解球线路（绿）'),
+            _LegendItem(color: Colors.white54, label: '白球→展开瞄准线（白虚线）'),
+            _LegendItem(color: _kickMirror, label: '镜像像点（空心圆，逐层展开）'),
+            _LegendItem(color: _kickAim, label: '碰库点（橙，①..⑤）'),
+            _LegendItem(color: _kickBlock, label: '障碍球（红）/被挡变红'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _kickInfoCard(_kickAccent,
+            '广义镜像展开法（任意库数通用）：\n把目标球对最后一库镜像 → 再把像对倒数第二库镜像 → … → 最后对第一库镜像，瞄最终的像。\n瞄准线会依次落在路线的每个库上——这就是一库镜像法、两库降维法的同一套数学，推广到 N 库。'),
+        _kickInfoCard(_kickMirror, '本条路线：${_route.note}'),
+        _kickInfoCard(_kickAim,
+            '多库解球实战要点：\n① 误差指数放大：3 库误差约一库的 4 倍、5 库约 16 倍——目标从“解到”降级为“不再被做斯诺克、不给对手留机会球”；\n② 力度：必须走满 N 库，先在练习台校准每条路线的参考力度；宁可稍大，不可不够（最后一库走不到等于白打）；\n③ 不带塞：塞在多库中累积，偏向不可预测；\n④ 二次遮挡：路线长，先沿全程目测一遍再出杆。'),
+      ],
+    );
+  }
+}
+
+class _KickMultiRailPainter extends CustomPainter {
+  _KickMultiRailPainter({
+    required this.rails,
+    required this.cueX,
+    required this.cueY,
+    required this.objX,
+    required this.objY,
+    required this.blockerT,
+    required this.showConstruction,
+  });
+
+  final List<int> rails;
+  final double cueX;
+  final double cueY;
+  final double objX;
+  final double objY;
+  final double blockerT;
+  final bool showConstruction;
+
+  static const double rN = 0.028;
+  static const List<String> _nums = ['①', '②', '③', '④', '⑤', '⑥'];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final railW = math.min(w, h) * 0.055;
+    final play = Rect.fromLTWH(w * 0.10, h * 0.05, w * 0.80, h * 0.56);
+    _kickDrawTable(canvas, size, play);
+    _kickDrawDiamonds(canvas, play, railW);
+
+    Offset pt(double x, double y) =>
+        Offset(play.left + x * play.width, play.bottom - y * play.height);
+
+    final r = play.width * rN;
+    final C = pt(cueX, cueY);
+    final O = pt(objX, objY);
+    final B = C + (O - C) * blockerT;
+
+    // 直线被挡
+    _kickDrawDash(canvas, C, O,
+        Paint()
+          ..color = _kickBlock.withValues(alpha: 0.5)
+          ..strokeWidth = 1.5);
+    _kickDrawText(canvas, '直线被挡', B + Offset(0, -r * 2.2),
+        color: _kickBlock, fontSize: 9);
+
+    final solve =
+        _KickMultiRailLabState.solveMulti(rails, cueX, cueY, objX, objY);
+
+    // 镜像构造：像链 O → 一次像 → … → 全展开瞄准点
+    if (showConstruction) {
+      final chain = <Offset>[
+        O,
+        ...solve.imgs.reversed.map((p) => pt(p.dx, p.dy)),
+      ];
+      for (int i = 0; i + 1 < chain.length; i++) {
+        _kickDrawDash(canvas, chain[i], chain[i + 1],
+            Paint()
+              ..color = _kickMirror.withValues(alpha: 0.35)
+              ..strokeWidth = 1.2);
+      }
+      for (int k = 0; k < solve.imgs.length; k++) {
+        final p = pt(solve.imgs[k].dx, solve.imgs[k].dy);
+        _kickDrawBall(canvas, p, r,
+            _kickMirror.withValues(alpha: k == 0 ? 0.95 : 0.45),
+            hollow: true);
+        if (k == 0) {
+          _kickDrawText(canvas, '瞄准点（全展开）', p + Offset(0, r * 2.2),
+              color: _kickMirror, fontSize: 9);
+        }
+      }
+    }
+
+    // 瞄准线（不可行时红色）
+    _kickDrawDash(canvas, C, pt(solve.imgs[0].dx, solve.imgs[0].dy),
+        Paint()
+          ..color = (solve.feasible ? Colors.white : _kickBlock)
+              .withValues(alpha: 0.55)
+          ..strokeWidth = 1.4);
+
+    // 实际路径
+    final allPts = <Offset>[C];
+    for (final c in solve.contacts) {
+      allPts.add(pt(c.dx, c.dy));
+    }
+    if (solve.feasible) allPts.add(O);
+
+    bool blocked = false;
+    if (solve.feasible) {
+      for (int i = 0; i + 1 < allPts.length; i++) {
+        if (_kickSegDist(B, allPts[i], allPts[i + 1]) < r * 2) {
+          blocked = true;
+          break;
+        }
+      }
+    }
+
+    final pathColor = blocked ? _kickBlock : _kickPath;
+    for (int i = 0; i + 1 < allPts.length; i++) {
+      canvas.drawLine(allPts[i], allPts[i + 1],
+          Paint()
+            ..color = pathColor
+            ..strokeWidth = 2.4);
+      final seg = allPts[i + 1] - allPts[i];
+      if (seg.distance > r * 6) {
+        final m = allPts[i] + seg * 0.55;
+        _kickDrawArrow(canvas, m - seg * 0.10, m + seg * 0.10,
+            Paint()
+              ..color = pathColor
+              ..strokeWidth = 2,
+            headLen: 5);
+      }
+    }
+
+    // 碰库点
+    for (int k = 0; k < solve.contacts.length; k++) {
+      final p = pt(solve.contacts[k].dx, solve.contacts[k].dy);
+      canvas.drawCircle(p, r * 0.45, Paint()..color = _kickAim);
+      _kickDrawText(canvas, _nums[k], p + Offset(0, -r * 2.0),
+          color: _kickAim, fontSize: 10);
+    }
+
+    if (!solve.feasible) {
+      _kickDrawText(canvas, solve.failMsg, Offset(w * 0.5, h * 0.02),
+          color: _kickBlock, fontSize: 10);
+    }
+
+    // 球与障碍
+    _kickDrawBall(canvas, O, r, const Color(0xFFFFEB3B));
+    _kickDrawText(canvas, '目标球', O + Offset(0, r * 2.4),
+        color: const Color(0xFFFFEB3B), fontSize: 9);
+    _kickDrawBall(canvas, B, r, _kickBlock);
+    _kickDrawText(canvas, '障碍球', B + Offset(0, r * 2.4),
+        color: _kickBlock, fontSize: 9);
+    _kickDrawBall(canvas, C, r, Colors.white);
+    _kickDrawText(canvas, '白球', C + Offset(-r * 2.6, 0),
+        color: Colors.white70, fontSize: 9);
+  }
+
+  @override
+  bool shouldRepaint(_KickMultiRailPainter old) =>
+      old.rails != rails ||
+      old.cueX != cueX ||
+      old.cueY != cueY ||
+      old.objX != objX ||
+      old.objY != objY ||
+      old.blockerT != blockerT ||
+      old.showConstruction != showConstruction;
+}
+
+// ---------------------------------------------------------------------------
+// Kick overview lab (总览：方法对比 + 实战问题)
+// ---------------------------------------------------------------------------
+
+class _KickOverviewLab extends StatelessWidget {
+  const _KickOverviewLab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _kickSection('什么是解球（Kick Shot）', const [
+          Text(
+              '目标球被障碍球挡住、无法直线击打时，让白球先碰库边、反弹后再击中目标球，就是解球（英文 Kick Shot，也叫 K 球）。\n核心几何原理是“反射＝展开成像”：碰库反弹等价于把目标球镜像到台外，然后直线瞄准镜像点。\n这套“镜像展开”原理对任意库数都成立——三库及以上的多库解球，就是逐库连续镜像。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.7)),
+        ]),
+        _kickSection('一库解球：五种方法对比', [
+          const _KickMethodCard(
+              name: '镜像法',
+              tag: '入门首选',
+              pros: '几何严格、零门槛、几分钟学会',
+              cons: '镜像点在台外“看不见”，需转成实体参照；两球离库差距大时误差大',
+              fit: '两球离库距离接近时；教学入门'),
+          const _KickMethodCard(
+              name: '接触点镜像（假想球法）',
+              tag: '实战主力',
+              pros: '可指定打薄/打厚，避免碰错球或解完再被做',
+              cons: '多一步假想球思考，需先掌握假想球瞄准',
+              fit: '实战解球、需要控制接触薄厚时'),
+          const _KickMethodCard(
+              name: '比例分点法',
+              tag: '不等距精确解',
+              pros: '两球离库不等时的严谨解，可以计算',
+              cons: '要目测距离比，心算负担大、目测有误差',
+              fit: '白球与目标球离库距离明显不同时'),
+          const _KickMethodCard(
+              name: '中点法（平行法）',
+              tag: '零计算',
+              pros: '直接打投影中点，所有方法里最快',
+              cons: '只在两球等距时成立',
+              fit: '两球离库距离大致相等时'),
+          const _KickMethodCard(
+              name: '钻石点法',
+              tag: '实体参照',
+              pros: '瞄准点全是台面上的钻石点，不用想象虚点',
+              cons: '依赖带钻石点的台子；每张台要记修正值',
+              fit: '有钻石点的中式八球/美式台'),
+        ]),
+        _kickSection('两库解球：五种方法对比', [
+          const _KickMethodCard(
+              name: '降维法',
+              tag: '主推·通用',
+              pros: '镜像一次把两库变一库，复用一库经验',
+              cons: '继承虚点看不见的问题；构造多一步',
+              fit: '所有两库解球，建议最先学'),
+          const _KickMethodCard(
+              name: '角点对称法',
+              tag: '角部两库',
+              pros: '直接瞄角点对称点，一步到位、几何严格',
+              cons: '对称点离台更远，更难找参照',
+              fit: '反角球、绕角解球'),
+          const _KickMethodCard(
+              name: '平行四边形法',
+              tag: '角部两库·视觉',
+              pros: '回球与出球平行反向，画平行四边形直观',
+              cons: '对称站位才完美成立，其余靠经验修正',
+              fit: '角部两库的快速估算'),
+          const _KickMethodCard(
+              name: '平行路线法',
+              tag: '平行两库',
+              pros: '出球与回球平行同向，跨台解球主力',
+              cons: '依赖“看得见平行”；误差经两库放大',
+              fit: '跨台远距离解球（斯诺克常见）'),
+          const _KickMethodCard(
+              name: '固定路线法',
+              tag: '比赛向',
+              pros: '背熟常用固定路线直接套用，无需计算',
+              cons: '换站位/换台失效；依赖练习量',
+              fit: '常打同一张台、比赛节奏快时'),
+        ]),
+        _kickSection('多库解球（三库及以上）：方法对比', [
+          const _KickMethodCard(
+              name: '广义镜像展开法',
+              tag: '通用·数学基础',
+              pros: '任意库数、任意路线通用；与一库镜像、两库降维是同一套几何',
+              cons: '库数越多像点离台越远，越难找实体参照；现场心算几乎不可能',
+              fit: '理解多库几何、在练习台上校准常用路线'),
+          const _KickMethodCard(
+              name: '长库折返路线',
+              tag: '跨台主力',
+              pros: '路线规律（顶-底-顶…），力度比绕台好控；斯诺克远台解球常用',
+              cons: '路程最长，力度必须刚好走满；对台呢速度敏感',
+              fit: '目标球在远台、长库方向无障碍时'),
+          const _KickMethodCard(
+              name: '绕台路线（4 库/5 库）',
+              tag: '最后手段',
+              pros: '能绕开堵住所有短路线的障碍球',
+              cons: '误差放大最严重；碰 4 次以上库后方向几乎不可控',
+              fit: '其他路线全部被挡时的保底选择'),
+          const _KickMethodCard(
+              name: '固定路线记忆法',
+              tag: '比赛向',
+              pros: '把常用 3 库/4 库路线练成肌肉记忆，比赛直接打',
+              cons: '换站位、换台就失效；需要大量练习积累',
+              fit: '职业选手处理多库解球的真实方式'),
+        ]),
+        _kickSection('实战问题与解决办法', const [
+          _KickQA(
+              q: '看不清平行线，怎么判断“平行”？',
+              a:
+                  '① 用钻石点当标尺：平行线在两端压住相同的钻石点编号；\n② 把球杆放在台边当实体参照线，再在心里平移；\n③ 站到台面延长线尽头，顺着库边看（透视对齐）；\n④ 在本实验室打开构造线，反复训练眼睛。'),
+          _KickQA(
+              q: '镜像点/对称点在台外，看不见怎么瞄？',
+              a:
+                  '把虚点换算成台上的实体参照：\n① 用“球宽”数距离——目标球离库几颗球宽，就在瞄准区找离库相同球宽的钻石点或台边位置；\n② 用球杆量等距（一根杆长≈半张台宽）；\n③ 先站在白球瞄准线后方把虚点方向定死，再俯身击球。'),
+          _KickQA(
+              q: '距离比估不准（比例分点法）怎么办？',
+              a:
+                  '用“球宽”当单位数（1/2/3 颗球宽），近似成简单整数比即可；不等距时先按等距中点定位，再把瞄准点按比例偏移，剩余误差留给自己常用台的校准。'),
+          _KickQA(
+              q: '实际反弹线路为什么偏？（入射角≠反射角）',
+              a:
+                  '三个原因：\n① 发力越猛，反弹角越小——解球统一中小力；\n② 塞改变反弹角：顺塞扩大、反塞缩小，解球尽量不带塞；\n③ 胶条弹性、台呢新旧因台而异——在常用台上积累每条库的修正值。'),
+          _KickQA(
+              q: '镜像轴到底是哪条线？',
+              a:
+                  '是库边鼻线（球实际接触胶条的位置），不是木框边。木框边比接触线靠外，按木框瞄会产生系统性误差——本实验室的青色虚线就是库边鼻线。'),
+          _KickQA(
+              q: '怎么知道解球线路会不会被再次挡住？',
+              a:
+                  '定好瞄准点后，沿完整路径（白球→碰库点→目标球）目测一遍；障碍球离任一段路径小于一个球宽就会被挡。拿不准就换更薄的接触点，或多走一库。'),
+          _KickQA(
+              q: '解到了但还是被做/送对手自由球怎么办？',
+              a:
+                  '解球优先级：先碰到合法球 ＞ 不留自由球 ＞ 走位。多用薄碰＋控力，让白球解完后停在自己球堆附近；实在解不到时，宁可安全球认罚分，也不要赌大误差。'),
+          _KickQA(
+              q: '解不到会怎么判罚？',
+              a:
+                  '中式八球/九球：未先碰到合法球＝犯规，对手获自由球（线后或全台，视规则）；斯诺克：犯规至少罚 4 分（涉及球分值更高时按高分罚），对手还可要求重打或获得自由球。所以解球第一目标是“碰到”，第二才是“走好”。'),
+          _KickQA(
+              q: '三库以上还能用镜像法吗？',
+              a:
+                  '能，而且是同一套数学——“广义镜像展开”：把目标球对最后一库镜像，再把像对倒数第二库镜像……最后的像就是瞄准点，瞄准线会依次落在路线的每个库上。库数越多像点离台越远，越难找实体参照，所以多库解球是没有其他选择时的选择。「多库解球」页签可以模拟 3/4/5 库的常用路线。'),
+          _KickQA(
+              q: '多库解球为什么几乎不可能精准解到？',
+              a:
+                  '误差指数放大：力度偏差、塞的偏差、胶条弹性差异每一库都叠加一次，3 库误差约一库的 4 倍、5 库约 16 倍。所以多库解球的目标要降级：先保证不空杆犯规，再追求“解到”；职业选手靠长期练习记下的固定路线，而不是现场计算。'),
+        ]),
+        _kickSection('练习建议', const [
+          Text(
+              '① 从等距站位的中点法开始，先建立“反射感”；\n② 用本实验室理解镜像构造，再上台实打；\n③ 固定中小力，每个距离打 10 次，记录偏向；\n④ 摆上障碍球，练习选择接触点（薄碰优先）；\n⑤ 最后到练习模式的「解球练习」摆球做实战验证；\n⑥ 多库解球：先在「多库解球」页签看 3 库折返的展开构造，再上台校准“刚好走满 3 库”的力度。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.8)),
+        ]),
+        _kickInfoCard(_kickMirror,
+            '一库五种方法均可在「一库解球」页签交互演示（中点法/钻石点法会画出近似偏差），两库两大类几何在「两库解球」，多库（3/4/5 库）常用路线可在「多库解球」模拟。\n相关内容：翻袋瞄准法总览里的「K球 Kick」条目；练习模式 → 高级练习 →「解球练习」摆球。'),
+      ],
+    );
+  }
+}
+
+class _KickMethodCard extends StatelessWidget {
+  const _KickMethodCard({
+    required this.name,
+    required this.tag,
+    required this.pros,
+    required this.cons,
+    required this.fit,
+  });
+
+  final String name;
+  final String tag;
+  final String pros;
+  final String cons;
+  final String fit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(
+              child: Text(name,
+                  style: TextStyle(
+                      color: _kickAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold)),
+            ),
+            Text(tag, style: TextStyle(color: _kickAim, fontSize: 10)),
+          ]),
+          const SizedBox(height: 6),
+          _kv('优点', pros, const Color(0xFF66BB6A)),
+          _kv('缺点', cons, const Color(0xFFEF5350)),
+          _kv('适用', fit, const Color(0xFF26C6DA)),
+        ],
+      ),
+    );
+  }
+
+  Widget _kv(String k, String v, Color c) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+              width: 34,
+              child: Text(k,
+                  style: TextStyle(
+                      color: c, fontSize: 11, fontWeight: FontWeight.bold))),
+          Expanded(
+            child: Text(v,
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 11, height: 1.5)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KickQA extends StatelessWidget {
+  const _KickQA({required this.q, required this.a});
+
+  final String q;
+  final String a;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 10),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        shape: const RoundedRectangleBorder(),
+        collapsedShape: const RoundedRectangleBorder(),
+        title: Text(q,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold)),
+        children: [
+          Text(a,
+              style: const TextStyle(
+                  color: Colors.white70, fontSize: 11, height: 1.6)),
+        ],
+      ),
+    );
+  }
+}
+
+// ===========================================================================
 // Cushion Ball Hub (库边球瞄准法 — Tab container)
 // ===========================================================================
 class _CushionBallHub extends StatefulWidget {
@@ -7584,6 +9468,1151 @@ class _RulesQuickRefLab extends StatelessWidget {
               )),
         ],
       ),
+    );
+  }
+}
+
+
+// ===========================================================================
+// 贴库球（Frozen Ball）—— 球贴住库边时的进球方法
+// ===========================================================================
+
+const double _frRN = 0.028; // 球半径（归一化）
+const double _frCornerMouth = 0.115; // 角袋袋口宽
+const double _frSideMouth = 0.095; // 中袋袋口宽
+
+class _FrozenSolve {
+  final Offset obj; // 目标球心（归一化，y=0 为底库）
+  final Offset cue;
+  final Offset pocket;
+  final bool isSide;
+  final double dist;
+  final Offset idealDir; // 球→袋 方向
+  final double accDeg; // 容错半角（度）
+  final Offset objDir; // 球实际运动方向 = normalize(obj-cue)
+  final double devDeg; // 偏离理想方向的角度
+  final bool pot;
+  final String reason;
+
+  const _FrozenSolve({
+    required this.obj,
+    required this.cue,
+    required this.pocket,
+    required this.isSide,
+    required this.dist,
+    required this.idealDir,
+    required this.accDeg,
+    required this.objDir,
+    required this.devDeg,
+    required this.pot,
+    required this.reason,
+  });
+}
+
+_FrozenSolve _frozenSolve({
+  required double bx,
+  required double gap,
+  required double cx,
+  required double cy,
+  required double pocketX,
+  required bool isSide,
+}) {
+  final obj = Offset(bx, _frRN + gap);
+  final pocket = Offset(pocketX, 0);
+  final d = pocket - obj;
+  final dist = d.distance;
+  final idealDir = dist < 1e-9 ? const Offset(0, -1) : d / dist;
+  final mouth = isSide ? _frSideMouth : _frCornerMouth;
+  final accArg = ((mouth / 2 - _frRN) / dist).clamp(0.0, 1.0);
+  var accDeg = math.asin(accArg) * 180 / math.pi;
+  if (isSide) accDeg *= 0.62; // 中袋袋喉浅，进角更苛刻
+
+  final cue = Offset(cx, cy);
+  final od = obj - cue;
+  final odLen = od.distance;
+  final objDir = odLen < 1e-9 ? const Offset(1, 0) : od / odLen;
+  final dot =
+      (objDir.dx * idealDir.dx + objDir.dy * idealDir.dy).clamp(-1.0, 1.0);
+  final devDeg = math.acos(dot) * 180 / math.pi;
+
+  var pot = false;
+  var reason = '';
+  if (dot <= 0) {
+    reason = '打反了——母球要放到目标球后方，把球推向袋口';
+  } else if (devDeg <= accDeg) {
+    pot = true;
+    reason = '进球：偏离 ${devDeg.toStringAsFixed(1)}° ≤ 容错 ${accDeg.toStringAsFixed(1)}°';
+  } else {
+    reason =
+        '角度偏了 ${(devDeg - accDeg).toStringAsFixed(1)}°——母球再贴近库边、推到球的正后方';
+  }
+  return _FrozenSolve(
+    obj: obj,
+    cue: cue,
+    pocket: pocket,
+    isSide: isSide,
+    dist: dist,
+    idealDir: idealDir,
+    accDeg: accDeg,
+    objDir: objDir,
+    devDeg: devDeg,
+    pot: pot,
+    reason: reason,
+  );
+}
+
+class _FrozenPainter extends CustomPainter {
+  _FrozenPainter({
+    required this.solve,
+    required this.showWedge,
+    this.title = '',
+  });
+
+  final _FrozenSolve solve;
+  final bool showWedge;
+  final String title;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final railW = math.min(w, h) * 0.055;
+    final play = Rect.fromLTWH(w * 0.10, h * 0.05, w * 0.80, h * 0.56);
+    _kickDrawTable(canvas, size, play);
+    _kickDrawDiamonds(canvas, play, railW);
+
+    Offset pt(double x, double y) =>
+        Offset(play.left + x * play.width, play.bottom - y * play.height);
+    double px(double nx) => nx * play.width;
+
+    final O = pt(solve.obj.dx, solve.obj.dy);
+    final C = pt(solve.cue.dx, solve.cue.dy);
+    final P = pt(solve.pocket.dx, solve.pocket.dy);
+    final r = px(_frRN);
+
+    // 高亮目标袋口
+    canvas.drawCircle(
+        P,
+        railW * 0.75,
+        Paint()
+          ..color = _kickAim
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2);
+
+    // 容错角扇形（球→袋 方向 ± acc）
+    if (showWedge) {
+      final dirC = P - O;
+      final angC = math.atan2(dirC.dy, dirC.dx);
+      final accRad = solve.accDeg * math.pi / 180;
+      final wedgeR = px(0.30);
+      canvas.drawArc(
+          Rect.fromCircle(center: O, radius: wedgeR),
+          angC - accRad,
+          accRad * 2,
+          true,
+          Paint()..color = _kickPath.withValues(alpha: 0.16));
+      for (final s in [-1.0, 1.0]) {
+        final a = angC + s * accRad;
+        _kickDrawDash(
+            canvas,
+            O,
+            O + Offset(math.cos(a), math.sin(a)) * wedgeR,
+            Paint()
+              ..color = _kickPath.withValues(alpha: 0.6)
+              ..strokeWidth = 1.2);
+      }
+    }
+
+    // 母球 → 目标球 瞄准线
+    _kickDrawDash(canvas, C, O,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.5)
+          ..strokeWidth = 1.4);
+
+    // 球实际运动方向（延长箭头）
+    final endN = solve.obj + solve.objDir * 0.45;
+    final pathColor = solve.pot ? _kickPath : _kickBlock;
+    _kickDrawArrow(canvas, O, pt(endN.dx, endN.dy),
+        Paint()
+          ..color = pathColor
+          ..strokeWidth = 2.4);
+
+    // 球
+    _kickDrawBall(canvas, O, r, const Color(0xFFFFEB3B)); // 目标球（黄）
+    _kickDrawBall(canvas, C, r, const Color(0xFFF5F5F5)); // 母球（白）
+
+    // 角度标注
+    _kickDrawText(canvas, '偏离 ${solve.devDeg.toStringAsFixed(1)}°',
+        O + Offset(0, -r * 2.4),
+        color: solve.pot ? _kickPath : _kickBlock, fontSize: 11);
+    _kickDrawText(canvas, '容错 ±${solve.accDeg.toStringAsFixed(1)}°',
+        O + Offset(0, r * 2.6),
+        color: _kickPath, fontSize: 10);
+    if (title.isNotEmpty) {
+      _kickDrawText(canvas, title, Offset(w / 2, h * 0.70),
+          color: Colors.white54, fontSize: 11);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FrozenPainter old) =>
+      old.solve != solve || old.showWedge != showWedge || old.title != title;
+}
+
+// ---------------------------------------------------------------------------
+// 贴库球 Hub
+// ---------------------------------------------------------------------------
+class _FrozenBallHub extends StatefulWidget {
+  const _FrozenBallHub();
+
+  @override
+  State<_FrozenBallHub> createState() => _FrozenBallHubState();
+}
+
+class _FrozenBallHubState extends State<_FrozenBallHub>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
+  static const _tabs = ['进角袋', '进中袋', '微缝球', '总览'];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: _tabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TabBar(
+          controller: _tabCtrl,
+          isScrollable: true,
+          indicatorColor: _kickAccent,
+          labelColor: _kickAccent,
+          unselectedLabelColor: Colors.white54,
+          labelStyle:
+              const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          tabs: _tabs.map((t) => Tab(text: t)).toList(),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: TabBarView(
+            controller: _tabCtrl,
+            children: const [
+              SingleChildScrollView(child: _FrozenCornerLab()),
+              SingleChildScrollView(child: _FrozenSideLab()),
+              SingleChildScrollView(child: _FrozenGapLab()),
+              SingleChildScrollView(child: _FrozenOverviewLab()),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 贴库球 · 进角袋
+// ---------------------------------------------------------------------------
+class _FrozenCornerLab extends StatefulWidget {
+  const _FrozenCornerLab();
+
+  @override
+  State<_FrozenCornerLab> createState() => _FrozenCornerLabState();
+}
+
+class _FrozenCornerLabState extends State<_FrozenCornerLab> {
+  double _bx = 0.42; // 贴库球横向位置
+  double _cx = 0.72; // 母球横向（默认置于理想击球线上）
+  double _cy = 0.05; // 母球离底库
+  int _corner = 0; // 0=左底袋, 1=右底袋
+
+  @override
+  Widget build(BuildContext context) {
+    final pocketX = _corner == 0 ? 0.0 : 1.0;
+    final s = _frozenSolve(
+        bx: _bx, gap: 0, cx: _cx, cy: _cy, pocketX: pocketX, isSide: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          _kickMethodChip('左底袋', _corner == 0,
+              () => setState(() => _corner = 0)),
+          _kickMethodChip('右底袋', _corner == 1,
+              () => setState(() => _corner = 1)),
+        ]),
+        const SizedBox(height: 8),
+        _kickSliderRow('贴库球位置', _bx, 0.15, 0.85,
+            (v) => setState(() => _bx = v),
+            valueText: (_bx * 100).toStringAsFixed(0)),
+        _kickSliderRow('母球横向', _cx, 0.05, 0.95,
+            (v) => setState(() => _cx = v),
+            valueText: (_cx * 100).toStringAsFixed(0)),
+        _kickSliderRow('母球离库', _cy, 0.05, 0.55,
+            (v) => setState(() => _cy = v),
+            valueText: (_cy * 100).toStringAsFixed(0)),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _FrozenPainter(
+                solve: s, showWedge: true, title: '贴库球进角袋：把母球推到球的正后方、尽量贴库'),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          _kickChip(
+              '偏离 ${s.devDeg.toStringAsFixed(1)}° / 容错 ±${s.accDeg.toStringAsFixed(1)}°',
+              s.pot ? _kickPath : _kickBlock),
+          if (s.pot) _kickChip('可进球', _kickPath),
+        ]),
+        const SizedBox(height: 10),
+        _kickInfoCard(s.pot ? _kickPath : _kickBlock, s.reason),
+        _kickInfoCard(_kickAccent,
+            '贴库球无法“切”，只能沿库边推。要点：\n① 母球站到目标球正后方，击球方向几乎平行于库边；\n② 母球越贴近库边，推出去的球越不会翘起、越不会偏；\n③ 绿色扇形＝能进球的方向容错范围——贴库球进角袋的容错通常只有 ±3~5°，所以要打得很直。\n④ 力度用中小力，发力过猛球会在库边跳动、偏离方向。'),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 贴库球 · 进中袋
+// ---------------------------------------------------------------------------
+class _FrozenSideLab extends StatefulWidget {
+  const _FrozenSideLab();
+
+  @override
+  State<_FrozenSideLab> createState() => _FrozenSideLabState();
+}
+
+class _FrozenSideLabState extends State<_FrozenSideLab> {
+  double _bx = 0.28;
+  double _cx = 0.08;
+  double _cy = 0.053;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = _frozenSolve(
+        bx: _bx, gap: 0, cx: _cx, cy: _cy, pocketX: 0.5, isSide: true);
+    // 同距离下角袋的容错，用于对比
+    final cornerAcc = math.asin(
+            ((_frCornerMouth / 2 - _frRN) / s.dist).clamp(0.0, 1.0)) *
+        180 /
+        math.pi;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _kickSliderRow('贴库球位置', _bx, 0.12, 0.88,
+            (v) => setState(() => _bx = v),
+            valueText: (_bx * 100).toStringAsFixed(0)),
+        _kickSliderRow('母球横向', _cx, 0.05, 0.95,
+            (v) => setState(() => _cx = v),
+            valueText: (_cx * 100).toStringAsFixed(0)),
+        _kickSliderRow('母球离库', _cy, 0.05, 0.55,
+            (v) => setState(() => _cy = v),
+            valueText: (_cy * 100).toStringAsFixed(0)),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _FrozenPainter(
+                solve: s, showWedge: true, title: '贴库球进中袋：袋口更窄、袋喉更浅，要求更直'),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          _kickChip(
+              '偏离 ${s.devDeg.toStringAsFixed(1)}° / 容错 ±${s.accDeg.toStringAsFixed(1)}°',
+              s.pot ? _kickPath : _kickBlock),
+          _kickChip('同距离角袋容错 ±${cornerAcc.toStringAsFixed(1)}°', _kickAim),
+          if (s.pot) _kickChip('可进球', _kickPath),
+        ]),
+        const SizedBox(height: 10),
+        _kickInfoCard(s.pot ? _kickPath : _kickBlock, s.reason),
+        _kickInfoCard(_kickAccent,
+            '中袋比角袋难进贴库球：\n① 袋口更窄（${_frSideMouth.toStringAsFixed(3)} vs ${_frCornerMouth.toStringAsFixed(3)}），容错角更小；\n② 中袋袋喉浅，球必须以几乎平行于库边的方向“贴着”进去，稍微翘一点就被袋角弹出；\n③ 实战里贴库球进中袋，优先用轻推、让球自己滚进去，宁可力量小也不要猛冲。\n④ 对比上面的橙色标签：同样距离，中袋容错往往只有角袋的一半左右。'),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 贴库球 · 微缝球（球与库边之间有一点缝隙）
+// ---------------------------------------------------------------------------
+class _FrozenGapLab extends StatefulWidget {
+  const _FrozenGapLab();
+
+  @override
+  State<_FrozenGapLab> createState() => _FrozenGapLabState();
+}
+
+class _FrozenGapLabState extends State<_FrozenGapLab> {
+  double _bx = 0.40;
+  double _gap = 0.03; // 缝隙
+  double _cx = 0.70;
+  double _cy = 0.10;
+  int _pocketIdx = 0; // 0左底 1中 2右底
+
+  @override
+  Widget build(BuildContext context) {
+    final pocketX = _pocketIdx == 0 ? 0.0 : (_pocketIdx == 1 ? 0.5 : 1.0);
+    final isSide = _pocketIdx == 1;
+    final s = _frozenSolve(
+        bx: _bx,
+        gap: _gap,
+        cx: _cx,
+        cy: _cy,
+        pocketX: pocketX,
+        isSide: isSide);
+    final frozen = _gap <= 0.004;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          _kickMethodChip('左底袋', _pocketIdx == 0,
+              () => setState(() => _pocketIdx = 0)),
+          _kickMethodChip('中袋', _pocketIdx == 1,
+              () => setState(() => _pocketIdx = 1)),
+          _kickMethodChip('右底袋', _pocketIdx == 2,
+              () => setState(() => _pocketIdx = 2)),
+        ]),
+        const SizedBox(height: 8),
+        _kickSliderRow('球的位置', _bx, 0.15, 0.85,
+            (v) => setState(() => _bx = v),
+            valueText: (_bx * 100).toStringAsFixed(0)),
+        _kickSliderRow('离库缝隙', _gap, 0.0, 0.10,
+            (v) => setState(() => _gap = v),
+            divisions: 20, valueText: _gap.toStringAsFixed(3)),
+        _kickSliderRow('母球横向', _cx, 0.05, 0.95,
+            (v) => setState(() => _cx = v),
+            valueText: (_cx * 100).toStringAsFixed(0)),
+        _kickSliderRow('母球离库', _cy, 0.05, 0.55,
+            (v) => setState(() => _cy = v),
+            valueText: (_cy * 100).toStringAsFixed(0)),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _FrozenPainter(
+                solve: s,
+                showWedge: true,
+                title: frozen
+                    ? '缝隙≈0：这就是贴库球，只能沿库边推'
+                    : '微缝球：可以沿库推，缝隙越大越能薄切'),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          _kickChip(frozen ? '贴库（无缝隙）' : '缝隙 ${_gap.toStringAsFixed(3)}',
+              frozen ? _kickBlock : _kickAim),
+          _kickChip(
+              '偏离 ${s.devDeg.toStringAsFixed(1)}° / 容错 ±${s.accDeg.toStringAsFixed(1)}°',
+              s.pot ? _kickPath : _kickBlock),
+          if (s.pot) _kickChip('可进球', _kickPath),
+        ]),
+        const SizedBox(height: 10),
+        _kickInfoCard(s.pot ? _kickPath : _kickBlock, s.reason),
+        _kickInfoCard(_kickAccent,
+            '“微缝球”指球没有完全贴死库边、还有一点缝隙：\n① 缝隙很小时，处理方式等同贴库球——沿库边推；\n② 缝隙足够大（约半个球以上）时，可以像普通球那样薄切进袋，选择更多；\n③ 拖动“离库缝隙”滑块，观察缝隙从 0 变大时，可选的进球方式如何变化；\n④ 判断缝隙大小的实用方法：俯身沿库边看球与胶条之间能否透进一张球杆皮头的厚度。'),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 贴库球 · 总览
+// ---------------------------------------------------------------------------
+class _FrozenOverviewLab extends StatelessWidget {
+  const _FrozenOverviewLab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _kickSection('什么是贴库球', const [
+          Text(
+              '球完全贴住库边（与胶条之间没有缝隙）时，叫贴库球（Frozen Ball）。它是最常见的“难进球”之一：因为球被库边挡住一半，无法像普通球那样从各个角度切球进袋。\n核心结论：贴库球只能“沿库边推”——让母球站到球的正后方，几乎平行于库边把球推向袋口。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.7)),
+        ]),
+        _kickSection('三种方法对比', [
+          const _KickMethodCard(
+              name: '沿库推（进角袋）',
+              tag: '最常用',
+              pros: '简单直接，角袋袋口大、袋喉深，容错相对高',
+              cons: '容错角仍只有 ±3~5°，要求母球很贴库、打得很直',
+              fit: '贴库球靠近某一侧角袋时'),
+          const _KickMethodCard(
+              name: '沿库推（进中袋）',
+              tag: '更苛刻',
+              pros: '球离中袋近时路线短、更省力',
+              cons: '中袋袋口窄、袋喉浅，容错角约为角袋一半，更容易被袋角弹出',
+              fit: '贴库球靠近中袋、且离角袋较远时'),
+          const _KickMethodCard(
+              name: '微缝薄切',
+              tag: '有缝隙才可用',
+              pros: '球与库边有缝隙时可薄切，进球线路选择更多',
+              cons: '缝隙太小就退化成贴库球；判断缝隙大小容易出错',
+              fit: '球没有完全贴死库边、缝隙约半个球以上时'),
+        ]),
+        _kickSection('共同要点', const [
+          Text(
+              '① 母球尽量贴库：母球离库边越近，推出去的球方向越正、越不翘；\n② 打到球的正后方：偏一点，球就偏离袋口方向；\n③ 用中小力：发力猛，球会在库边跳动、偏离，甚至跳离库边；\n④ 不要加塞：贴库推球基本不带旋转，纯推；\n⑤ 容错角小是本质：贴库球难进不是手感问题，是几何容错本来就小，练的是“直”。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.8)),
+        ]),
+        _kickSection('练习建议', const [
+          Text(
+              '① 把 5 颗球依次贴库排在一条库边，练习逐颗沿库推进角袋；\n② 同一颗贴库球，分别练进角袋和进中袋，体会两者容错差异；\n③ 练“微缝”判断：随机摆放留 0~1 个球宽的缝隙，先判断能不能薄切，再选择打法；\n④ 记录成功率：贴库球进角袋的合格线大约是 10 进 7。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.8)),
+        ]),
+      ],
+    );
+  }
+}
+
+
+// ===========================================================================
+// 组合球（传击 / Combination Shot）—— 用一颗球把另一颗球撞进袋
+// ===========================================================================
+
+const double _cbRN = 0.028; // 球半径（归一化）
+
+class _ComboSolve {
+  final Offset A; // 传击球
+  final Offset B; // 被传击的目标球
+  final Offset P; // 袋口
+  final Offset cue;
+  final Offset dirB; // B 需要走的方向
+  final Offset GB; // A 必须到达的接触点（B 后方一颗球直径）
+  final Offset dirA; // A 需要走的方向
+  final Offset GA; // 母球应击打 A 的假想球位
+  final double cueDevDeg; // 母球实际方向与 dirA 的偏差
+  final double transferDeg; // 传击角（dirA 与 dirB 夹角）
+  final double amp; // 误差放大系数 1/cos(传击角)
+  final bool pot;
+  final String reason;
+
+  const _ComboSolve({
+    required this.A,
+    required this.B,
+    required this.P,
+    required this.cue,
+    required this.dirB,
+    required this.GB,
+    required this.dirA,
+    required this.GA,
+    required this.cueDevDeg,
+    required this.transferDeg,
+    required this.amp,
+    required this.pot,
+    required this.reason,
+  });
+}
+
+_ComboSolve _comboSolve({
+  required double ax,
+  required double ay,
+  required double bx,
+  required double by,
+  required double cx,
+  required double cy,
+  required double pocketX,
+}) {
+  final A = Offset(ax, ay);
+  final B = Offset(bx, by);
+  final P = Offset(pocketX, 1.0);
+  final cue = Offset(cx, cy);
+
+  final dBv = P - B;
+  final dirB = dBv / dBv.distance;
+  final GB = B - dirB * (2 * _cbRN);
+  final dAv = GB - A;
+  final dALen = dAv.distance;
+  final dirA = dALen < 1e-9 ? dirB : dAv / dALen;
+  final GA = A - dirA * (2 * _cbRN);
+
+  final cv = A - cue;
+  final cvLen = cv.distance;
+  final cueDir = cvLen < 1e-9 ? dirA : cv / cvLen;
+  final dotCue =
+      (cueDir.dx * dirA.dx + cueDir.dy * dirA.dy).clamp(-1.0, 1.0);
+  final cueDevDeg = math.acos(dotCue) * 180 / math.pi;
+
+  final dotT = (dirA.dx * dirB.dx + dirA.dy * dirB.dy).clamp(-1.0, 1.0);
+  final transferDeg = math.acos(dotT) * 180 / math.pi;
+  final amp = 1.0 / math.max(math.cos(transferDeg * math.pi / 180), 0.12);
+
+  var pot = false;
+  var reason = '';
+  if (transferDeg > 80) {
+    reason =
+        '传击角太大（${transferDeg.toStringAsFixed(0)}°）：A 只能擦过 B，传不动——把 A 挪到 B 的“袋口反方向”一侧';
+  } else if (cueDevDeg > 3.5) {
+    reason =
+        '母球偏了 ${cueDevDeg.toStringAsFixed(1)}°：要对准 A 的假想球位（白圈），让 A 恰好到达 B 身后的接触点';
+  } else {
+    pot = true;
+    reason =
+        '传击成立：母球→A→B→袋 全链路对齐（传击角 ${transferDeg.toStringAsFixed(0)}°）';
+  }
+  return _ComboSolve(
+    A: A,
+    B: B,
+    P: P,
+    cue: cue,
+    dirB: dirB,
+    GB: GB,
+    dirA: dirA,
+    GA: GA,
+    cueDevDeg: cueDevDeg,
+    transferDeg: transferDeg,
+    amp: amp,
+    pot: pot,
+    reason: reason,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 组合球 Hub
+// ---------------------------------------------------------------------------
+class _ComboShotHub extends StatefulWidget {
+  const _ComboShotHub();
+
+  @override
+  State<_ComboShotHub> createState() => _ComboShotHubState();
+}
+
+class _ComboShotHubState extends State<_ComboShotHub>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
+  static const _tabs = ['直线传击', '角度传击', '总览'];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: _tabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TabBar(
+          controller: _tabCtrl,
+          isScrollable: true,
+          indicatorColor: _kickAccent,
+          labelColor: _kickAccent,
+          unselectedLabelColor: Colors.white54,
+          labelStyle:
+              const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          tabs: _tabs.map((t) => Tab(text: t)).toList(),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: TabBarView(
+            controller: _tabCtrl,
+            children: const [
+              SingleChildScrollView(child: _ComboStraightLab()),
+              SingleChildScrollView(child: _ComboAngleLab()),
+              SingleChildScrollView(child: _ComboOverviewLab()),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 组合球 · 直线传击
+// ---------------------------------------------------------------------------
+class _ComboStraightLab extends StatefulWidget {
+  const _ComboStraightLab();
+
+  @override
+  State<_ComboStraightLab> createState() => _ComboStraightLabState();
+}
+
+class _ComboStraightLabState extends State<_ComboStraightLab> {
+  double _ax = 0.38; // 传击球 A
+  double _ay = 0.52;
+  double _bx = 0.30; // 目标球 B
+  double _by = 0.72;
+  double _cx = 0.45; // 母球（默认置于假想球线上）
+  double _cy = 0.23;
+  int _pocket = 0; // 0左上 1上中 2右上
+
+  @override
+  Widget build(BuildContext context) {
+    final pocketX = _pocket == 0 ? 0.0 : (_pocket == 1 ? 0.5 : 1.0);
+    final s = _comboSolve(
+        ax: _ax,
+        ay: _ay,
+        bx: _bx,
+        by: _by,
+        cx: _cx,
+        cy: _cy,
+        pocketX: pocketX);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          _kickMethodChip('左上袋', _pocket == 0,
+              () => setState(() => _pocket = 0)),
+          _kickMethodChip('上中袋', _pocket == 1,
+              () => setState(() => _pocket = 1)),
+          _kickMethodChip('右上袋', _pocket == 2,
+              () => setState(() => _pocket = 2)),
+        ]),
+        const SizedBox(height: 8),
+        _kickSliderRow('A 横向', _ax, 0.08, 0.92,
+            (v) => setState(() => _ax = v),
+            valueText: (_ax * 100).toStringAsFixed(0)),
+        _kickSliderRow('A 纵向', _ay, 0.08, 0.90,
+            (v) => setState(() => _ay = v),
+            valueText: (_ay * 100).toStringAsFixed(0)),
+        _kickSliderRow('B 横向', _bx, 0.08, 0.92,
+            (v) => setState(() => _bx = v),
+            valueText: (_bx * 100).toStringAsFixed(0)),
+        _kickSliderRow('B 纵向', _by, 0.35, 0.90,
+            (v) => setState(() => _by = v),
+            valueText: (_by * 100).toStringAsFixed(0)),
+        _kickSliderRow('母球横向', _cx, 0.05, 0.95,
+            (v) => setState(() => _cx = v),
+            valueText: (_cx * 100).toStringAsFixed(0)),
+        _kickSliderRow('母球纵向', _cy, 0.05, 0.60,
+            (v) => setState(() => _cy = v),
+            valueText: (_cy * 100).toStringAsFixed(0)),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _ComboStraightPainter(solve: s),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          _kickChip('传击角 ${s.transferDeg.toStringAsFixed(0)}°',
+              s.transferDeg > 80 ? _kickBlock : _kickAim),
+          _kickChip(
+              '母球偏差 ${s.cueDevDeg.toStringAsFixed(1)}°（≤3.5° 成立）',
+              s.cueDevDeg <= 3.5 ? _kickPath : _kickBlock),
+          if (s.pot) _kickChip('传击成立', _kickPath),
+        ]),
+        const SizedBox(height: 10),
+        _kickInfoCard(s.pot ? _kickPath : _kickBlock, s.reason),
+        _kickInfoCard(_kickAccent,
+            '组合球＝用 A 球把 B 球撞进袋。三步几何构造：\n① B 要进袋，B 的方向必须指向袋口（绿线 B→袋）；\n② 反推 A 的“到点”：B 身后沿袋口方向一颗球直径处（青色空心圈＝A 必须到达的接触点）；\n③ 再反推母球：母球要打在 A 的假想球位（白色空心圈），把 A 推去接触点。\n图中画出了完整链条：母球→A→接触点→B→袋。拖动滑块，观察链条在哪个环节断开。'),
+      ],
+    );
+  }
+}
+
+class _ComboStraightPainter extends CustomPainter {
+  _ComboStraightPainter({required this.solve});
+
+  final _ComboSolve solve;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final railW = math.min(w, h) * 0.055;
+    final play = Rect.fromLTWH(w * 0.10, h * 0.05, w * 0.80, h * 0.56);
+    _kickDrawTable(canvas, size, play);
+    _kickDrawDiamonds(canvas, play, railW);
+
+    Offset pt(double x, double y) =>
+        Offset(play.left + x * play.width, play.bottom - y * play.height);
+    final r = play.width * _cbRN;
+
+    final A = pt(solve.A.dx, solve.A.dy);
+    final B = pt(solve.B.dx, solve.B.dy);
+    final P = pt(solve.P.dx, solve.P.dy);
+    final C = pt(solve.cue.dx, solve.cue.dy);
+    final GB = pt(solve.GB.dx, solve.GB.dy);
+    final GA = pt(solve.GA.dx, solve.GA.dy);
+
+    // 目标袋高亮
+    canvas.drawCircle(
+        P,
+        railW * 0.75,
+        Paint()
+          ..color = _kickAim
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2);
+
+    // B→袋 目标线
+    _kickDrawArrow(canvas, B, P,
+        Paint()
+          ..color = _kickPath
+          ..strokeWidth = 2.2);
+    _kickDrawText(canvas, 'B 的目标线', (B + P) / 2 + Offset(r * 2.4, 0),
+        color: _kickPath, fontSize: 9);
+
+    // A→接触点
+    _kickDrawDash(canvas, A, GB,
+        Paint()
+          ..color = _kickMirror.withValues(alpha: 0.8)
+          ..strokeWidth = 1.6);
+    // 接触点（A 的到点）
+    _kickDrawBall(canvas, GB, r, _kickMirror, hollow: true);
+    _kickDrawText(canvas, 'A 的到点', GB + Offset(r * 2.6, r * 1.4),
+        color: _kickMirror, fontSize: 9);
+
+    // 母球→A 的假想球位
+    _kickDrawBall(canvas, GA, r, Colors.white, hollow: true);
+    _kickDrawText(canvas, '母球打这里', GA + Offset(-r * 3.2, r * 1.6),
+        color: Colors.white70, fontSize: 9);
+    _kickDrawDash(canvas, C, GA,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.55)
+          ..strokeWidth = 1.4);
+
+    // 传击角弧（在 GB 处，dirA 与 dirB 的夹角）
+    final aA = math.atan2(-solve.dirA.dy, solve.dirA.dx); // 画布 y 向下
+    final aB = math.atan2(-solve.dirB.dy, solve.dirB.dx);
+    var sweep = aB - aA;
+    while (sweep > math.pi) {
+      sweep -= 2 * math.pi;
+    }
+    while (sweep < -math.pi) {
+      sweep += 2 * math.pi;
+    }
+    canvas.drawArc(
+        Rect.fromCircle(center: GB, radius: r * 2.4),
+        aA,
+        sweep,
+        false,
+        Paint()
+          ..color = _kickAim
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6);
+
+    // 球
+    _kickDrawBall(canvas, A, r, const Color(0xFF64B5F6)); // A 蓝
+    _kickDrawBall(canvas, B, r, const Color(0xFFFFEB3B)); // B 黄
+    _kickDrawBall(canvas, C, r, const Color(0xFFF5F5F5)); // 母球白
+    _kickDrawText(canvas, 'A', A, color: Colors.black87, fontSize: 10);
+    _kickDrawText(canvas, 'B', B, color: Colors.black87, fontSize: 10);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ComboStraightPainter old) =>
+      old.solve != solve;
+}
+
+// ---------------------------------------------------------------------------
+// 组合球 · 角度传击（传击角与误差放大）
+// ---------------------------------------------------------------------------
+class _ComboAngleLab extends StatefulWidget {
+  const _ComboAngleLab();
+
+  @override
+  State<_ComboAngleLab> createState() => _ComboAngleLabState();
+}
+
+class _ComboAngleLabState extends State<_ComboAngleLab> {
+  double _theta = 30; // 传击角（度）
+  double _distA = 0.30; // 母球到 A 的距离
+  double _aimErr = 0; // 母球瞄准误差（度）
+
+  static const double _bx = 0.62;
+  static const double _by = 0.74;
+
+  @override
+  Widget build(BuildContext context) {
+    const B = Offset(_bx, _by);
+    const P = Offset(1.0, 1.0);
+    final dirB = (P - B) / (P - B).distance;
+    final thRad = _theta * math.pi / 180;
+    // A 的入射方向 = dirB 旋转 θ；接触点（假想球位）固定在 B 身后袋口反方向一颗球直径处，
+    // A 放在接触点后方，沿 dirA 推过去即命中接触点、把 B 送向袋口
+    final dirA = Offset(
+        dirB.dx * math.cos(thRad) - dirB.dy * math.sin(thRad),
+        dirB.dx * math.sin(thRad) + dirB.dy * math.cos(thRad));
+    final GB = B - dirB * (2 * _cbRN);
+    const distAB = 0.26;
+    final A = GB - dirA * distAB;
+    // 瞄准误差：母球方向绕 dirA 旋转 aimErr
+    final errRad = _aimErr * math.pi / 180;
+    final cueDir = Offset(
+        dirA.dx * math.cos(errRad) - dirA.dy * math.sin(errRad),
+        dirA.dx * math.sin(errRad) + dirA.dy * math.cos(errRad));
+    final cue = A - cueDir * _distA;
+
+    final amp = 1.0 / math.max(math.cos(thRad), 0.12);
+    final bErr = _aimErr * amp; // B 的方向误差
+    const mouth = 0.115;
+    final distBP = (P - B).distance;
+    final accDeg = math.asin(((mouth / 2 - _cbRN) / distBP).clamp(0.0, 1.0)) *
+        180 /
+        math.pi;
+    final pot = bErr.abs() <= accDeg;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _kickSliderRow('传击角', _theta, 0, 80,
+            (v) => setState(() => _theta = v),
+            divisions: 32, valueText: '${_theta.toStringAsFixed(0)}°'),
+        _kickSliderRow('母球距离', _distA, 0.15, 0.55,
+            (v) => setState(() => _distA = v),
+            valueText: (_distA * 100).toStringAsFixed(0)),
+        _kickSliderRow('母球瞄准误差', _aimErr, -8, 8,
+            (v) => setState(() => _aimErr = v),
+            divisions: 32, valueText: '${_aimErr.toStringAsFixed(1)}°'),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 14 / 10,
+          child: CustomPaint(
+            painter: _ComboAnglePainter(
+              A: A,
+              B: B,
+              P: P,
+              cue: cue,
+              GB: GB,
+              dirA: dirA,
+              dirB: dirB,
+              thetaDeg: _theta,
+              bErrDeg: bErr,
+              accDeg: accDeg,
+              pot: pot,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 6, children: [
+          _kickChip('误差放大 ×${amp.toStringAsFixed(1)}', _kickAim),
+          _kickChip(
+              '母球误 ${_aimErr.toStringAsFixed(1)}° → B 误 ${bErr.toStringAsFixed(1)}°（容错 ±${accDeg.toStringAsFixed(1)}°）',
+              pot ? _kickPath : _kickBlock),
+          if (pot) _kickChip('B 进袋', _kickPath),
+        ]),
+        const SizedBox(height: 10),
+        _kickInfoCard(pot ? _kickPath : _kickBlock,
+            pot ? 'B 的方向误差仍在袋口容错内——传击成功' : 'B 的方向误差超出袋口容错——偏出袋口'),
+        _kickInfoCard(_kickAccent,
+            '角度传击的核心规律：传击角越大，误差放大越狠。\n误差放大系数 ≈ 1/cos(传击角)：\n· 传击角 0°：放大 ×1.0（直线传击，最稳）\n· 传击角 30°：放大 ×1.2\n· 传击角 45°：放大 ×1.4\n· 传击角 60°：放大 ×2.0（母球偏 1°，B 就偏 2°）\n· 传击角 75°：放大 ×3.9（几乎不可控）\n拖动“母球瞄准误差”滑块，直观看到同样的手抖，在不同传击角下 B 的偏离差多少。结论：能用直线传击就不用角度传击；必须斜传时，出杆精度要求按 1/cosθ 提高。'),
+      ],
+    );
+  }
+}
+
+class _ComboAnglePainter extends CustomPainter {
+  _ComboAnglePainter({
+    required this.A,
+    required this.B,
+    required this.P,
+    required this.cue,
+    required this.GB,
+    required this.dirA,
+    required this.dirB,
+    required this.thetaDeg,
+    required this.bErrDeg,
+    required this.accDeg,
+    required this.pot,
+  });
+
+  final Offset A;
+  final Offset B;
+  final Offset P;
+  final Offset cue;
+  final Offset GB; // 接触点（A 的到点）
+  final Offset dirA;
+  final Offset dirB;
+  final double thetaDeg;
+  final double bErrDeg;
+  final double accDeg;
+  final bool pot;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final railW = math.min(w, h) * 0.055;
+    final play = Rect.fromLTWH(w * 0.10, h * 0.05, w * 0.80, h * 0.56);
+    _kickDrawTable(canvas, size, play);
+    _kickDrawDiamonds(canvas, play, railW);
+
+    Offset pt(Offset p) =>
+        Offset(play.left + p.dx * play.width, play.bottom - p.dy * play.height);
+    final r = play.width * _cbRN;
+
+    final Ac = pt(A);
+    final Bc = pt(B);
+    final Pc = pt(P);
+    final Cc = pt(cue);
+
+    final GBc = pt(GB);
+    // 目标袋高亮
+    canvas.drawCircle(
+        Pc,
+        railW * 0.75,
+        Paint()
+          ..color = _kickAim
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2);
+
+    // B→袋 理想线 + 容错扇形
+    final aB = math.atan2(Pc.dy - Bc.dy, Pc.dx - Bc.dx);
+    final accRad = accDeg * math.pi / 180;
+    final wedgeR = play.width * 0.30;
+    canvas.drawArc(
+        Rect.fromCircle(center: Bc, radius: wedgeR),
+        aB - accRad,
+        accRad * 2,
+        true,
+        Paint()..color = _kickPath.withValues(alpha: 0.14));
+    _kickDrawArrow(canvas, Bc, Pc,
+        Paint()
+          ..color = _kickPath
+          ..strokeWidth = 2.2);
+
+    // B 的实际方向（理想方向 + bErr）
+    final errRad = bErrDeg * math.pi / 180;
+    final bAct = Offset(
+        dirB.dx * math.cos(errRad) - dirB.dy * math.sin(errRad),
+        dirB.dx * math.sin(errRad) + dirB.dy * math.cos(errRad));
+    final bEnd = pt(B + bAct * 0.42);
+    _kickDrawArrow(canvas, Bc, bEnd,
+        Paint()
+          ..color = pot ? _kickPath : _kickBlock
+          ..strokeWidth = 1.8);
+
+    // 母球→A
+    _kickDrawDash(canvas, Cc, Ac,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.55)
+          ..strokeWidth = 1.4);
+    // A→接触点 传击线 + 接触点空心圈
+    _kickDrawArrow(canvas, Ac, GBc,
+        Paint()
+          ..color = _kickMirror
+          ..strokeWidth = 2.0);
+    _kickDrawBall(canvas, GBc, r, _kickMirror, hollow: true);
+
+    // 传击角弧（接触点处：A 入射方向 vs B 出射方向）
+    final aIn = math.atan2(-dirA.dy, dirA.dx); // 画布 y 向下
+    final aB2 = math.atan2(-dirB.dy, dirB.dx);
+    var sweepT = aB2 - aIn;
+    while (sweepT > math.pi) {
+      sweepT -= 2 * math.pi;
+    }
+    while (sweepT < -math.pi) {
+      sweepT += 2 * math.pi;
+    }
+    canvas.drawArc(
+        Rect.fromCircle(center: GBc, radius: r * 2.6),
+        aIn,
+        sweepT,
+        false,
+        Paint()
+          ..color = _kickAim
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6);
+    _kickDrawText(canvas, '传击角 ${thetaDeg.toStringAsFixed(0)}°',
+        GBc + Offset(-r * 6.5, r * 2.6),
+        color: _kickAim, fontSize: 10);
+
+    // 球
+    _kickDrawBall(canvas, Ac, r, const Color(0xFF64B5F6));
+    _kickDrawBall(canvas, Bc, r, const Color(0xFFFFEB3B));
+    _kickDrawBall(canvas, Cc, r, const Color(0xFFF5F5F5));
+    _kickDrawText(canvas, 'A', Ac, color: Colors.black87, fontSize: 10);
+    _kickDrawText(canvas, 'B', Bc, color: Colors.black87, fontSize: 10);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ComboAnglePainter old) =>
+      old.A != A ||
+      old.B != B ||
+      old.P != P ||
+      old.GB != GB ||
+      old.cue != cue ||
+      old.thetaDeg != thetaDeg ||
+      old.bErrDeg != bErrDeg ||
+      old.accDeg != accDeg ||
+      old.pot != pot;
+}
+
+// ---------------------------------------------------------------------------
+// 组合球 · 总览
+// ---------------------------------------------------------------------------
+class _ComboOverviewLab extends StatelessWidget {
+  const _ComboOverviewLab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _kickSection('什么是组合球', const [
+          Text(
+              '目标球 B 无法直接进袋（被挡、角度太差），但旁边有颗 A 球——用母球打 A，让 A 把 B 撞进袋，就是组合球（Combination Shot，也叫传击）。它是“没办法时的办法”：两次碰撞意味着误差叠加、成功率天然低于直接击球。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.7)),
+        ]),
+        _kickSection('两种传击方式对比', [
+          const _KickMethodCard(
+              name: '直线传击',
+              tag: '首选',
+              pros: '母球、A、B、袋口近似一线，误差放大 ×1.0，成功率最高',
+              cons: '对球型要求苛刻——必须恰好有一条直线链',
+              fit: 'A 球正好在 B 与袋口的延长线附近时'),
+          const _KickMethodCard(
+              name: '角度传击',
+              tag: '通用',
+              pros: 'A 不在直线上也能打，适应大多数球型',
+              cons: '误差按 1/cos(传击角) 放大：45° 放大 1.4 倍、60° 放大 2 倍',
+              fit: '直线链不存在、必须斜着传击时'),
+          const _KickMethodCard(
+              name: '吻球（Kiss）',
+              tag: '顺带了解',
+              pros: '两颗目标球相贴时的特殊传击，有时是唯一解',
+              cons: '接触点固定、几乎不可调，成败更多靠球型本身',
+              fit: '两颗球冻在一起、需要借其中一颗时'),
+        ]),
+        _kickSection('三步瞄准法（所有组合球通用）', const [
+          Text(
+              '① 先定 B 的方向：B 要进哪个袋，B→袋 这条线是起点；\n② 反推 A 的到点：沿 B→袋 的反方向，从 B 退回一颗球直径，就是 A 撞击时必须到达的位置；\n③ 再反推母球：母球按假想球法瞄准 A——把 A 推到“到点”即可。\n心里按 ③→②→① 倒着想、按 ①→②→③ 正着检查，链路任何一环对不上就不要打。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.8)),
+        ]),
+        _kickSection('规则与风险提示', const [
+          Text(
+              '① 中式八球：组合球合法，但母球必须先接触本方花色球——用对方球当 A 球先碰＝犯规；\n② 黑八只能在清完本方球后作为最后目标，不能拿组合球提前撞黑八进袋（直接判负）；\n③ 组合球力量损耗大：A 撞 B 会损失大量动能，B 进袋要留足力量余量；\n④ 两次碰撞后母球与 A、B 的走位都难控，打组合球前先想好下一杆——没有下一杆的组合球往往得不偿失。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.8)),
+        ]),
+        _kickSection('练习建议', const [
+          Text(
+              '① 摆直线链：B 放袋口延长线上、A 放中间，练十颗进八颗再上难度；\n② 逐步加大传击角：30°→45°→60°，体会误差放大的手感差异；\n③ 固定传击角、只练力量：体会“传击要比直接击球多用几成力”；\n④ 实战决策练习：给一个球型，先判断“有没有直接下法”，再决定要不要组合球。',
+              style: TextStyle(
+                  color: Colors.white70, fontSize: 12, height: 1.8)),
+        ]),
+      ],
     );
   }
 }
