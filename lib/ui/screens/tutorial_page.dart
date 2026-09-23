@@ -49,6 +49,14 @@ final List<_TutorialCategory> _categories = [
     ],
   ),
   _TutorialCategory(
+    title: '台球术语词典',
+    icon: Icons.menu_book,
+    color: const Color(0xFF26A69A),
+    items: [
+      _TutorialItem(title: '完整术语表', icon: Icons.format_list_bulleted, builder: () => const _GlossaryPage()),
+    ],
+  ),
+  _TutorialCategory(
     title: '姿势与出杆',
     icon: Icons.accessibility_new,
     color: const Color(0xFF42A5F5),
@@ -3510,4 +3518,437 @@ class _ClearanceOrderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+// ===========================================================================
+// 台球术语词典 — 完整术语表（由 glossary_content.dart 合并入 tutorial_page.dart）
+// ===========================================================================
+
+class _GlossaryPage extends StatelessWidget {
+  const _GlossaryPage();
+
+  @override
+  Widget build(BuildContext context) => const SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _GlossHeader(title: '一、球具与设备'),
+          _GlossSection('ball_equipment'),
+          SizedBox(height: 20),
+          _GlossHeader(title: '二、比赛规则术语'),
+          _GlossSection('rule_terms'),
+          SizedBox(height: 20),
+          _GlossHeader(title: '三、杆法与旋转术语'),
+          _GlossSection('shot_techniques'),
+          SizedBox(height: 20),
+          _GlossHeader(title: '四、瞄准与走位术语'),
+          _GlossSection('aiming_position'),
+          SizedBox(height: 20),
+          _GlossHeader(title: '五、战术与局面术语'),
+          _GlossSection('tactics'),
+          SizedBox(height: 20),
+          _GlossHeader(title: '六、中式八球专用术语'),
+          _GlossSection('chinese_8_ball'),
+          SizedBox(height: 20),
+          _GlossHeader(title: '七、英文常用对照'),
+          _GlossSection('english_terms'),
+          SizedBox(height: 20),
+          _GlossHeader(title: '八、斯诺克术语'),
+          _GlossSection('snooker_terms'),
+          SizedBox(height: 20),
+          _GlossHeader(title: '九、九球术语'),
+          _GlossSection('nine_ball_terms'),
+        ]),
+      );
+}
+
+class _GlossHeader extends StatelessWidget {
+  const _GlossHeader({required this.title});
+  final String title;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 14, top: 4),
+        child: Text(title, style: const TextStyle(color: Color(0xFF81C784), fontSize: 20, fontWeight: FontWeight.bold)),
+      );
+}
+
+class _GlossEntry {
+  const _GlossEntry({
+    required this.term,
+    this.en = '',
+    required this.shortText,
+    required this.longText,
+    required this.example,
+  });
+  final String term;
+  final String en;
+  final String shortText;
+  final String longText;
+  final String example;
+}
+
+class _GlossSectionData {
+  const _GlossSectionData({required this.id, required this.entries});
+  final String id;
+  final List<_GlossEntry> entries;
+}
+
+final List<_GlossSectionData> _allSections = [
+  // ===== 一、球具与设备 (中式八球) =====
+  _GlossSectionData(id: 'ball_equipment', entries: [
+    _GlossEntry(term: '母球', en: 'Cue Ball', shortText: '白色球，唯一用球杆直接击打的球。',
+        longText: '母球是比赛中唯一允许使用球杆击打的球。中式八球中只有一颗白色母球（有些比赛也使用带红点的"标号球"作为母球）。所有犯规时对手可获得自由球——将母球放置在台面任意位置重新开杆。',
+        example: '当你说"我把母球打落袋了"就意味着犯规，对方可以拿球摆在台面上任何地方继续打。'),
+    _GlossEntry(term: '目标球', en: 'Object Ball', shortText: '除了母球外的 1–15 号球，都是需要打入袋口的目标球。',
+        longText: '目标球分为全色球（1–7 号，实心色）和花色球（9–15 号，带白条纹）。每方玩家负责打进自己球组的所有目标球，最后打 8 号获胜。',
+        example: '你选了全色球后，台面上 1–7 号每一颗都是你的目标球，必须按顺序一颗颗打进。'),
+    _GlossEntry(term: '全色球', en: 'Solids', shortText: '1–7 号实心色球，颜色分别为黄、蓝、红、紫、橙、绿、棕。',
+        longText: '全色球在开球后通过首个进球确定归属。它们编号 1 到 7，每个球有独特的标准颜色。全色球和花色球是中式八球的两大阵营。',
+        example: '如果第一个合法进球的是黄色的①号球，那你就拿到了全色球组，对手自动获得花色球。'),
+    _GlossEntry(term: '花色球', en: 'Stripes', shortText: '9–15 号带白色条纹的球，颜色同全色球。',
+        longText: '花色球与全色球对应，同样 7 颗，颜色相同但带有纵向白条纹。在比赛中区分两组球非常重要，混淆打错属于犯规。',
+        example: '打花色球时你必须先用球杆碰到 9–15 号中的任一球，如果先碰到了对方的全色球就是犯规。'),
+    _GlossEntry(term: '8 号球', en: '8 Ball / Black Ball', shortText: '黑色球，是中式八球的决胜球——清完己方球组后才能打它。',
+        longText: '8 号球是最关键的球。在你成功打进所有己方球组（全色或花色）后，才可以瞄准并打入 8 号球获胜。如果在未清完己方球时就意外打入 8 号球，或者打 8 号时发生任何犯规，都直接判负。',
+        example: '你已经打完了所有全色球，现在只剩 8 号和对手的最后一颗花色球。你可以直接瞄准 8 号袋口，这是你的最后一次机会。'),
+    _GlossEntry(term: '球杆', en: 'Cue Stick / Cue', shortText: '击打母球的木质长杆，通常由前节和后节组装而成。',
+        longText: '标准球杆长度约 145cm（57 英寸），重量 16–21 盎司。球杆前端包有天然或合成皮头（cue tip），皮头的粗糙程度直接影响是否"吃球"（产生旋转的能力）。高手会根据不同情况选择不同的球杆。',
+        example: '新买的球杆皮头可能太光滑打不出缩杆，需要用砂纸打磨表面增加摩擦力，再涂几层巧克粉。'),
+    _GlossEntry(term: '三角架', en: 'Rack / Triangle', shortText: '三角形框架工具，用于摆球时将 15 颗球紧密排列成金字塔形。',
+        longText: '三角架可以是硬塑料的固定形状框架，也可以是柔软可收紧的布制三角框。摆放时应确保 8 号球在正中央（第三排中间），顶点球放在置球点，两个底角球分别是一全色和一花色。',
+        example: '摆球时把三角架顶点对准置球点，然后把球一颗颗放进去推紧，最后小心提起三角架不破坏球的位置。'),
+    _GlossEntry(term: '巧克', en: 'Chalk', shortText: '涂抹在球杆皮头上的彩色块状物，增加摩擦防止滑杆。',
+        longText: '巧克的主要成分是硅砂和粘结剂。每次击球前给皮头均匀涂一层巧克是关键习惯——没有巧克的皮头极其容易滑杆（skying/miscue），即球杆从母球侧面滑脱而非击中预期位置。常见颜色有蓝色、绿色、粉色和紫色。',
+        example: '如果你连续几次出杆都出现"啪"的一声刺耳声，母球没往前走反而跳起——这就是没涂巧克导致的滑杆。'),
+    _GlossEntry(term: '库边 / 岸', en: 'Cushion / Rail', shortText: '球台四周装有橡胶弹性边的木制围板。',
+        longText: '标准球台四面都有库边，内部填充橡胶垫，外部为实木包裹。库边的弹性和平整度对球的反弹角度至关重要。选手经常利用一颗或多颗库边改变母球行进路线（称"解球"或"翻袋"）。',
+        example: '"打一库"指母球碰到一次库边；"双库解球"就是母球先后碰两次库边再到达目标球。'),
+    _GlossEntry(term: '置球点', en: 'Foot Spot', shortText: '球台上距离端库约 1/4 处的一个参考标记点。',
+        longText: '置球点是球台上的几何中心参考线交点，也是三角架球开球时顶点球的放置位置。在犯规获自由球时，母球通常可以放在置球点附近。注意它不是精确的点而是一个区域范围。',
+        example: '开球时你把三角架的尖端对准置球点，这样第一排的第一颗球就正好站在正确位置上。'),
+    _GlossEntry(term: '开球线', en: 'Head String / Head String Line', shortText: '横跨球台中部的一条参考线，开球时母球必须放在线上或后方。',
+        longText: '开球线将球台分为两半：从端库到开球线之间是"前半区"，开球线到另一侧端库之间是"后半区"。开球时母球必须放在开球线及更靠后的区域发球，不能越过这条线。',
+        example: '你觉得力度的话把母球紧贴开球线发，想保守一点就往后退到离底线只有 5cm 的地方发。'),
+    _GlossEntry(term: '巧粉', en: 'Pool Chalk', shortText: '即巧克的正式名称，用于涂抹球杆皮头。',
+        longText: '巧克也叫巧粉，在台球术语中二者同义。主要成分为硅砂和粘结剂，作用是增加皮头与母球之间的摩擦力，防止击球时球杆滑脱造成失误。职业选手每次击球前都会反复涂擦皮头。',
+        example: '打完这杆记得涂一下巧粉，刚才那杆有点打滑了。'),
+  ]),
+
+  // ===== 二、比赛规则术语 =====
+  _GlossSectionData(id: 'rule_terms', entries: [
+    _GlossEntry(term: '开放局', en: 'Open Table / Open Break', shortText: '开球后尚未确定球组归属的状态，此时可以瞄准任意目标球。',
+        longText: '开球入袋不决定球组的归属，这被称为"开放台面"。直到某一方第一次合法击入特定组别球后，该组才归其所有。开放阶段意味着策略灵活——你可以选择任何看起来最容易进的球开始进攻。',
+        example: '刚开球进了两颗花球但你还没确定要花色还是全色。这时候你可以瞄一朵全色球试试手感，如果顺利就顺势转攻全色。'),
+    _GlossEntry(term: '自由球', en: 'Ball in Hand / Free Ball', shortText: '因对方犯规而获得的权益：可以把母球放在台面上任意位置击球。',
+        longText: '当对方犯规后，你就获得自由球（也称"拿球"）。这时你可以用手拿起母球，摆放在台面上任何你想要的位置——可以选择最佳进球线路、安全防守位或走位位置。自由球通常放在开球线后或直接对准目标袋口上方。',
+        example: '对手把母球洗袋了，你现在拿到自由球。直接把母球拎到 8 号球旁边，一击就能进。'),
+    _GlossEntry(term: '犯规', en: 'Foul', shortText: '违反规则的行为，最常见结果是对方获得自由球。',
+        longText: '中式八球的犯规有多种：母球落袋（洗袋）、空杆（没碰到任何球）、未先碰己方球、无球碰库、球飞出台面、非法触碰等。几乎所有犯规的结果都是对方获得自由球——可以将母球放到台面任意位置继续打。',
+        example: '你在打全色球结果球杆偏了一点点先碰到了⑨号花色球——这叫"先碰到非目标球"犯规，对方拿到自由球。'),
+    _GlossEntry(term: '合法击球', en: 'Legal Shot', shortText: '符合规则的击球：母球先碰己方球 + （有进球或有球碰库）。',
+        longText: '合法击球需要同时满足两个条件：1）母球必须先碰到己方球组；2）之后必须有至少一颗球入袋，或者有任意球（母球或目标球）碰到库边。两者缺一不可。',
+        example: '你打到一颗很薄的球，母球碰到 7 号后两颗球都没进球也没碰到库边——这不是合法击球，算空杆犯规。'),
+    _GlossEntry(term: '判负', en: 'Loss of Game', shortText: '直接输掉这一局的情况，最典型是提前打 8 号或打 8 号时犯规。',
+        longText: '以下情况直接判负：1）己方球组未打完就打入 8 号球；2）打 8 号时母球落袋；3）打 8 号时任何其他犯规；4）8 号球飞出桌面。这些都是不可挽回的致命失误。',
+        example: '你只差最后一颗花色球和 8 号了，结果打花色时母球跟着进去了——虽然是打进了一颗球，但因为打 8 号前犯规，直接输了。'),
+    _GlossEntry(term: '连打', en: 'Innings / Run', shortText: '在一次合法击球进球后继续击球的机会，直到未能进球为止。',
+        longText: '只要你的击球是合法的并且有球入袋，就可以继续击下一杆，这就是"连打"过程。高手常常能通过精准走位实现"清台"——连续多杆不进手地把所有球打完。',
+        example: '你今天状态不错，开了一个 6 杆的连打把全色球全部清干净——这就是所谓"一波带走"。'),
+    _GlossEntry(term: '接力', en: 'Switch / Changeover', shortText: '双方轮流击球的回合交换，当一方未能合法进球时发生。',
+        longText: '中式八球采用轮切换打法。当你的合法击球没能进球且没犯规时，球权自然交给对手。这与美式 9 球的"谁进球谁继续"完全不同——中式八球的基本理念是"进了就继续，没进就换人"。',
+        example: '你一杆进了一个花球继续打了第二个但没进——球权转到对手手上，他开始他的连打。'),
+    _GlossEntry(term: '无指袋', en: 'Call-less / No Call Pocket', shortText: '中式八球特色：进球时无需指定袋口，任何袋都可以。',
+        longText: '与美式 8 球要求"指球定袋"不同，中式八球不需要事先声明要把哪个球打进哪个袋。你可以在击球时瞄准任何一个袋口进球即可。这降低了入门门槛但也增加了不确定性。',
+        example: '你看③号球可以从底袋也可以从中袋进，不用提前说从哪个袋进去——只要它最终进袋就算合法进球。'),
+    _GlossEntry(term: '洗袋', en: 'Scratch', shortText: '母球意外落入袋口，最常见的犯规类型。',
+        longText: '"洗袋"就是俗称的"吞母"或"杀白"——母球打出去后自己钻进了袋口。这是初学者最常见的错误，因为用力过猛或瞄准不准导致母球跟进过深。后果是给对方自由球，往往让原本领先的局势急转直下。',
+        example: '你打那颗简单的中袋直球却因为力量大了半档，母球追得太紧跟着目标球一起掉进了同一个袋。'),
+    _GlossEntry(term: '开球犯规', en: 'Opening Foul', shortText: '开球时发生的犯规行为，如母球落袋、未碰触球堆等。',
+        longText: '开球犯规包括：母球落袋、母球飞出台面、开球时不足 4 颗球碰库（某些规则）、击球时脚踩线等。开球犯规的后果与其他犯规相同——对方获得自由球。',
+        example: '你一开球就把母球轰进了底袋——开球犯规！对手现在可以直接把母球放到靠近 8 号的位置。'),
+    _GlossEntry(term: '自由摆球', en: 'Free Placement', shortText: '与自由球相关：可将母球放置在台面除开球线前的任何位置（部分赛制允许全台面自由放置）。',
+        longText: '不同的台球规则和赛事对自由球的使用有不同的限制。大多数情况下可以自由放在台面任何位置，但有些正式比赛的特定规则下可能会有额外限制（例如必须在开球线之后）。了解你所玩的赛制的具体规定很重要。',
+        example: '裁判说了自由摆球——我直接把母球放在距 8 号球仅 5cm 的位置，一击定胜负。'),
+  ]),
+
+  // ===== 三、杆法与旋转术语 =====
+  _GlossSectionData(id: 'shot_techniques', entries: [
+    _GlossEntry(term: '跟杆 / 高杆', en: 'Follow / Top Spin', shortText: '击打母球上半部，使母球带前旋，碰到目标球后继续向前跟进。',
+        longText: '跟杆通过施加前旋转来实现母球撞击目标球后的持续前进。击球点越高（越接近顶部），跟球效果越强。跟杆的关键不是单纯用大力，而是快速出杆配合充分的送杆（follow-through）。轻推的高杆会产生"推杆"效果，重击则产生强烈的"大跟杆"。',
+        example: '你需要母球打进目标球后继续向前走两步来找下一颗球的位置——这就打跟杆，母球撞击后会追着目标球的方向走。'),
+    _GlossEntry(term: '缩杆 / 低杆', en: 'Draw / Back Spin', shortText: '击打母球下半部，使母球带回旋，碰到目标球后向后缩回。',
+        longText: '缩杆是最实用的高级杆法之一。通过击打母球下方产生反向旋转，母球在接触目标球后因反作用力后退。缩杆成功需要三个要素：低击球点、快速的出杆速度、以及"吃球"良好的皮头。初学者常犯的错误是用大力代替快出杆。',
+        example: '目标球打进后母球会停在危险位置，所以你打一颗低杆——母球撞完球迅速撤回安全区域，避开了对手的进攻路线。'),
+    _GlossEntry(term: '定杆 / 中杆', en: 'Stop Shot / Stun Shot', shortText: '击打母球正中心，近台时母球撞击后原地停住不动。',
+        longText: '定杆是最基础的杆法，也是检验出杆直线度的最好方法。击打母球正中心使母球以纯滚动方式前进（无旋转），碰撞后动能全部传递给目标球，自身停止。中杆在远距离会有一定滑行（称为"stun"），完全定住通常需要近距离。',
+        example: '打这颗薄球后用定杆——母球撞击后纹丝不动地停在原处，这样可以精确判断刚才出杆是不是直的。'),
+    _GlossEntry(term: '推杆', en: 'Push Shot / Screw Push', shortText: '中偏上击球点加中等力度，母球先滑行再微微跟进，比跟杆可控。',
+        longText: '推杆介于跟杆和定杆之间。击球点略高于中心，配合中等力度使用。效果是母球在滑行一段距离后才开始轻微跟随。相比大跟杆更容易控制，实战中使用频率很高。',
+        example: '你想母球往前走但不想走太远，刚好能碰到下一颗星——推杆是最好的选择，它给的距离比跟杆短得多也更稳定。'),
+    _GlossEntry(term: '扎杆', en: 'Massé', shortText: '球杆大幅度倾斜（近乎垂直）击打母球侧面，使母球走出弧线绕过障碍球。',
+        longText: '扎杆是一种特殊杆法，通过在母球侧上方施加大量旋转来实现球路的弯曲。根据球杆倾角可分为平扎（较低角度）和立扎（较高角度，几乎垂直）。扎杆难度大、风险高，业余爱好者很少使用，但在有障碍球时需要救命时非常精彩。',
+        example: '目标球前面挡着一颗对方球挡住了所有直线路径，你把球杆竖得很高斜着打母球的右上侧——母球像香蕉一样绕过了障碍物进了袋。'),
+    _GlossEntry(term: '跳球', en: 'Jump Shot', shortText: '用较大角度向下敲击母球尾部，使母球短暂跳离台面跃过障碍。',
+        longText: '跳球依靠球杆快速向下击打母球底部，让母球弹跳起来越过阻挡的障碍球后落回台面继续走位。现代跳球杆在杆头装有弹簧装置辅助发力，但传统上也需要高超的技巧。',
+        example: '母球和目标球之间隔着一颗花球，你用跳球把母球高高弹起越过了障碍球再轻轻落下走到想要的位置。'),
+    _GlossEntry(term: '刹车球', en: 'Nip Draw / Short Draw', shortText: '低杆变体，短促击打使母球碰后只缩回一小段距离。',
+        longText: '刹车球是缩杆的一种变化形式。同样是低击球点，但不同于完整的缩杆，这里强调的是"短促收力"——在即将触球瞬间加速但随即刹车式收回。目的是让母球仅后退少量距离以便调整下一个击球的角度。',
+        example: '缩杆打过头了母球退到另一边库边太远，这次改用刹车球的概念——轻轻一缩刚好回到想要的角度。'),
+    _GlossEntry(term: '登杆 / 漂移杆', en: 'Drag / Drag Follow', shortText: '中高杆配合中等力度，母球先滑行一段再慢慢开始跟进。',
+        longText: '登杆是跟杆的温和版本。高一点击球点加上柔和的力度让母球先经历一段纯滑行（类似定杆），随着速度衰减才开始显示出跟随效果。这种"先漂后跟"的效果非常适合细腻走位。',
+        example: '你需要母球走得比较远但又不能完全失控，选一个登杆——它会先滑出一段再渐渐减速跟进，就像溜冰一样。'),
+    _GlossEntry(term: '塞 / 侧旋', en: 'English / Side Spin', shortText: '击打母球左侧或右侧，给母球加上横向旋转。',
+        longText: '侧旋是最复杂也是最强大的控制手段之一。左塞（打在母球左侧）和右塞（打在右侧）可以在母球碰库后改变反弹角度，抵消或增强分离角，甚至制造神奇的"逆塞"(check english)现象。但侧旋也会引起偏移效应(throw)，需谨慎使用。',
+        example: '你要打一个很难的薄球，母球需要大角度反弹去追下一颗星——给一个大右塞母球碰库后反弹角度会比正常大很多，让你有机会走到更好位置。'),
+    _GlossEntry(term: '拉杆', en: 'Backspin / Draw', shortText: '同上，不同叫法而已，都是指低击球点产生后退效果的杆法。',
+        longText: '中文里有多种称呼——"低杆"强调击球位置在下方，"缩杆"强调效果是让球退回，"拉杆"在某些地区也叫"倒旋"。本质上都是同一件事：在母球下半部击打产生反向旋转。',
+        example: '"练缩杆""练低杆""练拉杆"——说的都是同一套练习内容，就是通过反复训练找到那个工作稳定的"甜点球点"。'),
+    _GlossEntry(term: '切杆', en: 'Massé (light)', shortText: '轻度的扎杆，球杆不完全垂直，击打母球侧面产生弧线运动。',
+        longText: '切杆与扎杆类似但倾斜角度更小。适用于只需较小弧线的场景。切杆常用于绕过一颗障碍球后让母球到达理想的走位位置。',
+        example: '只需要绕过一颗挡路的小球，我用了一个轻切杆，母球走了个小小的弧线就到了目标位置。'),
+    _GlossEntry(term: '穿透式出杆', en: 'Through Stroke', shortText: '出杆时杆头穿过母球原来位置的出杆方式，强调送杆充分。',
+        longText: '好的出杆不仅要击打准确，更要保证杆头穿过母球原来的空间后再收回。这种"穿透"的感觉能确保力量传递完整，减少侧向干扰。送杆的长度和质量直接决定了击球的品质。',
+        example: '教练总说你出杆"没收住"，意思就是杆头没穿透母球——应该想象杆头要穿过母球再往前伸 5-10cm。'),
+  ]),
+
+  // ===== 四、瞄准与走位术语 =====
+  _GlossSectionData(id: 'aiming_position', entries: [
+    _GlossEntry(term: '假想球法', en: 'Ghost Ball Method', shortText: '想象一颗刚好贴住目标球并将目标球推向目标袋口的白色球，瞄准这个假想球的位置击球。',
+        longText: '假想球法是公认最直观有效的瞄准方法。想象在目标球前方紧贴处有一颗虚拟的白色球——当真正的母球运动到这个虚球位置并与目标球碰撞时，目标球就会沿虚球中心与袋口中心的连线方向飞入袋中。你只需要瞄准那个假想球。',
+        example: '目标球在右侧袋口对角线上，你想象一颗球紧贴目标球朝向袋口——那颗虚球就是你要打到的目标位置，把你的视线从眼睛到虚球画一条直线就是你的出杆方向。'),
+    _GlossEntry(term: '切角', en: 'Cut Angle', shortText: '母球击打目标球偏离中心的程度，决定了球的分向角度。',
+        longText: '切角越大（越薄），目标球的行进方向越接近母球原来的方向，分离角越小。完全正中（厚击）切角为 0°，目标球和母球呈 90° 分开。极薄球切角可达 45° 以上。',
+        example: '"这颗是半厚球"指的是大约 30° 左右的切角——母球大约只碰到目标球的一半厚度。'),
+    _GlossEntry(term: '厚薄', en: 'Full / Half / Thin Cut', shortText: '描述击打目标球时母球接触到目标球的厚度比例。',
+        longText: '厚薄是球手常用的粗略描述："全厚"＝正中击打，目标球正面朝向袋口，母球几乎正面对撞。"半厚"＝命中目标球约一半厚度，形成约 30° 切角。"薄球"＝仅擦边碰到目标球的一小部分，形成大角度切球。厚薄判断是球感的基石。',
+        example: '"这颗是全厚球（直球），这颗差不多 3/4 厚，最难打的是那种极薄的边缘球。"'),
+    _GlossEntry(term: '分离角', en: 'Separation Angle', shortText: '目标球被击中后的行进线与母球后续行进线之间的夹角。',
+        longText: '在中杆无旋转的理想情况下，分离角接近 90°。这是物理学中弹性碰撞的结果。但当使用高杆或低杆时，分离角会被压缩（变得更小）；使用强力侧旋时会因摩擦和库边反弹效应改变分离角。90° 法则是新手理解走位的起点。',
+        example: '"中杆打出去目标球往右走，母球往左走，两条路线正好形成一个直角——这就是经典的 90° 分离角。"'),
+    _GlossEntry(term: '走位', en: 'Position Play / Positioning', shortText: '击球后控制母球停在哪里的技术，为下一杆做准备。',
+        longText: '走位是台球最高深的艺术之一。它结合了旋转控制、力度感知、目标球位置预判等多个因素。好的走位能让连续进球行云流水；差的走位会让简单球变得异常困难。',
+        example: '"这杆打完我要走到右下角去——所以我得打一颗低杆加上一点点右塞来改变反弹路线，母球才能停在那颗星的位置。"'),
+    _GlossEntry(term: '走位计划', en: 'Position Plan / Shape Plan', shortText: '击球前在脑海中预先规划 3–5 杆内母球的最佳路径。',
+        longText: '高水平选手在击球之前就已经规划好接下来的多次击球。他们不会只考虑眼前这一杆能不能进球，而是思考"这杆打完后母球会去哪？下一颗怎么够到？再下一颗呢？"这种前瞻性思维是区分新手和老手的关键。',
+        example: '"我计划先进 ⑤ 号然后到低杆回到左上角，接着打 ② 号用中杆走到右边，再处理 ④ 号——三步计划已经做好了。"'),
+    _GlossEntry(term: '偏移', en: 'Squirt / Deflection', shortText: '击打侧旋时母球实际行进方向偏离瞄准线的现象。',
+        longText: '由于球杆不在母球绝对中心施力（哪怕是微量的偏左或偏右），母球在受到侧旋的同时会有一个微小的横向位移。这种现象称为"偏移"或"squirt"。球杆越硬、皮头越小，偏移越明显。高手需要通过经验积累来判断和补偿偏移。',
+        example: '你想要打左塞，结果发现母球往右跑了——这是因为你给了侧旋但球杆偏了一点，造成了偏移效应。'),
+    _GlossEntry(term: '钻石点系统', en: 'Diamond System', shortText: '利用球台上的钻石点（库边上的菱形标记）来计算库边反弹角度的辅助方法。',
+        longText: '标准球台的每面库边上都有 3 或 4 个菱形钻石标记，将库边等分。钻石点系统是通过观察母球和袋口相对于这些标记的位置关系来快速估算反弹角度的计算方法。最常用的有"镜像袋口法"和"等距法"。该系统最适合于一库解球。',
+        example: '"看这个位置——母球在第二个钻石点后面，袋口在前一个钻石点上——所以母球碰库后应该在第三个钻石点附近反弹。"'),
+    _GlossEntry(term: '全厚击打', en: 'Full Hit', shortText: '正中击打，母球中心和目标球中心在同一直线上。',
+        longText: '全厚击打是切角最小的击球方式，相当于母球正面撞击目标球。此时目标球沿着母球行进方向飞出，而母球在 90° 方向分离（假设中杆）。全厚是其他所有厚薄程度的参照基准。',
+        example: '"这颗直球是全厚——母球正对袋口中心，击打后目标球直直进袋。"'),
+  ]),
+
+  // ===== 五、战术与局面术语 =====
+  _GlossSectionData(id: 'tactics', entries: [
+    _GlossEntry(term: '清台', en: 'Run Out / Clear the Table', shortText: '在一轮连打中连续打进所有己方球组和 8 号球，一局终结对手。',
+        longText: '清台是台球最令人兴奋的时刻之一。它不仅要求精准的技术，更需要良好的局面前瞻性和心态控制。职业选手经常在比赛中完成整局清台，业余选手偶尔也能靠"手感火热"做到。',
+        example: '"他今天发挥神勇，从开球后就一路连胜，把全色球全部打进然后稳稳打入 8 号——单杆清台！对手一句话都没说就上来了。"'),
+    _GlossEntry(term: '安全球', en: 'Safety / Defensive Shot', shortText: '不以进球为主要目的，而是通过精妙走位让对手难以继续进攻。',
+        longText: '安全球是中式八球最重要的战术之一。当你找不到好的进球线路时，与其冒险尝试失败丢分，不如打一颗安全球——把母球藏到不利位置，或将目标球放到难打的位置，迫使对手解球困难甚至犯规。"防守即进攻"是顶级选手的重要素养。',
+        example: '"台面局面很乱，我没把握打进③号，所以我把母球轻轻推到底袋后面的角落，顺便把③号蹭到了库边贴着袋口——对手现在根本看不到进球路线。"'),
+    _GlossEntry(term: '解球', en: 'Kick / Relief Shot', shortText: '在对方给自己留了困难局面后，努力寻找办法继续比赛的击球。',
+        longText: '当对手打出安全球后，你需要解球——找到一种方式合法地击中自己的目标球。有时候这意味着需要翻越障碍球、需要经过多库、或者从极难的角度切入。解球能力体现了选手的底限水平。',
+        example: '"我的目标球被对方球完全挡住，唯一的出路是让母球先撞两颗库边再绕回来碰到目标球。虽然难度极大但我找到了那条线。"'),
+    _GlossEntry(term: '翻袋', en: 'Bank Shot', shortText: '利用库边反弹将目标球打入袋口的击球方式。',
+        longText: '翻袋是指目标球不直接进袋，而是先撞击库边弹回后再进入袋口。常见的有一库翻、双库翻、甚至三库翻。翻袋对角度计算的要求极高，通常在直线路径被阻挡时才使用，有时也是一种炫技手段。',
+        example: '"这颗直接进不了，我让它先碰右侧库边弹进来——就是一颗一库翻袋。"'),
+    _GlossEntry(term: '贴球', en: 'Touching Ball', shortText: '母球和目标球物理接触在一起的状态，需要特殊处理方式。',
+        longText: '当母球停在紧挨目标球的位置时称为"贴球"。这种情况下不能正常击球——必须先将母球至少移动一个球直径的距离（实际操作中轻轻击打使其略微分离）。贴球处理不当会造成推杆犯规。',
+        example: '"母球刚好靠在⑦号旁边——你只能非常轻柔地戳一下让母球挪开一点点，然后再认真瞄准击打⑦号。"'),
+    _GlossEntry(term: '做球', en: 'Plant / Lay Up', shortText: '故意将母球停在一个对自己有利的特定位置，便于后续击球。',
+        longText: '"做球"和"走位"意思相近但更强调精心规划的意图。高手会特意安排母球走向，不仅为了打好当前剩下的球，还要为之后的清台铺路。有时候甚至会在可以进球的情况下选择不打进，转而追求更好的下一杆位置。',
+        example: '"这颗完全可以打进，但我选择轻点不进球——因为打进后母球会跑到左边死角，我不进反而能把母球留在中间，下一杆打④号更方便。"'),
+    _GlossEntry(term: '残局', en: 'Ending / Finish', shortText: '台球进入剩少数几颗球（通常只剩己方球和 8 号）的最后阶段。',
+        longText: '残局是最紧张刺激的阶段，通常决定胜负。在残局中每颗球都不能失误——尤其是打 8 号时哪怕一丝犹豫或力道偏差都会导致全盘皆输。残局考验心理素质和技术稳定性。',
+        example: '"现在已经残局了——只剩你和对手各一颗球加 8 号。你先进掉了自己的最后一颗，轮到你打 8 号定胜负。全场安静下来。"'),
+    _GlossEntry(term: '翻袋解球', en: 'Bank Kick / Bank Relief', shortText: '通过翻袋的方式解到目标球，解决安全球造成的困局。',
+        longText: '面对对手布置的精妙安全球，选手有时需要使用翻袋来解决困境。这需要精确的角度计算和对库边反弹特性的深刻理解。高质量的翻袋解球既是技术展示也是对对手安全球的有力回应。',
+        example: '"他把母球先翻了一库再碰到①号——漂亮的翻袋解球，差点就以为这球没法打了。"'),
+  ]),
+
+  // ===== 六、中式八球专用术语 =====
+  _GlossSectionData(id: 'chinese_8_ball', entries: [
+    _GlossEntry(term: '中式八球', en: 'Chinese 8-Ball / XBP', shortText: '全称"中式台球八球"，源自中国并于 2017 年标准化的台球玩法。',
+        longText: '中式八球结合了美式 8 球和英式 8 球的元素，在规则上相对简化（无需指袋、无需轮换），球大小适中（57mm），使用标准的 9 尺台。近年来风靡全球，成为亚洲最流行的台球形式。CBSA（中国台球协会）发布了正式竞赛总则。',
+        example: '"你打美式还是中式？""我更喜欢中式，不用记袋口省心多了。"'),
+    _GlossEntry(term: 'XBP', en: 'XBP / Chinese 8-Ball', shortText: "中式八球的英文名缩写，国际赛事中常标注为'XBP'。",
+        longText: "XBP 代表 'Chinese Eight-ball Pool' 的简称，在 WPA 世界台球协会体系中也被认可为一项独立玩法。国际锦标赛通常统一使用 XBP 名称。",
+        example: '"今年 WPA 举办的 XBP 世界杯中国队拿了冠军。"'),
+    _GlossEntry(term: 'CBSA 规则', en: 'CBSA Rules / Chinese 8-Ball Rules', shortText: '由中国台球协会制定的中式八球官方竞赛规则。',
+        longText: '主要要点：1）无指袋（不需声明袋口）；2）无需轮换打（进了就继续）；3）所有球入袋均计入个人球组；4）犯规后自由球放在任意位置；5）开球 8 号入袋不算输也不算赢，需重新摆球；6）打 8 号前必须清完己方球组。',
+        example: '根据 CBSA 规则，开球时 8 号掉进去不算立刻赢也不算立刻输——重新摆上 8 号，其他人可以继续打。'),
+    _GlossEntry(term: '金身', en: 'Gold Body', shortText: '形容选手状态极佳、一击百中的完美表现。',
+        longText: '"金身"一词源于武术和道教用语，在台球中指选手在某一刻打得势不可挡、所有球仿佛装了磁铁一样听话。虽然听起来有点玄学，但这其实是肌肉记忆、专注度和手感高度统一的产物。',
+        example: '"小王今天开了金身啊，整整连打了 15 杆没间断！"'),
+    _GlossEntry(term: '黑八告负', en: 'Loss on 8-Ball Foul', shortText: '打 8 号球过程中犯规或被提前打入 8 号的判负。',
+        longText: '黑八阶段的犯规是最残酷的惩罚机制。此前你可能领先对手好几颗球的优势，但只要在黑八阶段犯了一个低级错误（比如母球落袋、没碰到 8 号等等），游戏直接结束。这也使得黑八阶段成为压力最大的时候。',
+        example: '"本来你领先一颗球，但是打 8 号的时候母球落袋了——黑八告负，对方赢了！"'),
+    _GlossEntry(term: '开球摆阵', en: 'Racking / Rack Setup', shortText: '将 15 颗目标球用三角架排列成特定形状的准备工作。',
+        longText: '中式八球的摆阵有严格规范：8 号球在正中、顶点在置球点、两底角一全一花、其余随机但必须紧密贴合。正规比赛使用专用的三角框来保证摆球的精确性和一致性。正确的摆阵对开球质量和整个比赛的公平性都非常重要。',
+        example: '"摆好了吗？检查一遍——8 号在中间，底角一花一全……好，可以开球了。"'),
+  ]),
+
+  // ===== 七、英文常用对照 =====
+  _GlossSectionData(id: 'english_terms', entries: [
+    _GlossEntry(term: 'Game On', en: 'Game On', shortText: '比赛开始口令。开球后确认有球入袋或合法击球有效时使用。',
+        longText: '开球后如果有球合法入袋，裁判或开球方会说"Game On"表示比赛正式开始。这是一个重要的仪式性用语，标志着双方博弈正式启动。',
+        example: '"你开球吧……有球进就好，Game On! 开始打。"'),
+    _GlossEntry(term: 'Your turn / My turn', en: 'Your turn / My turn', shortText: '轮到谁打的口头表达，球权转换时的礼貌用语。',
+        longText: '当一方未能进球时，通常会说"你的了"或"My turn"将球权交给对方。这是一种礼貌提醒，避免混淆谁应该击球。',
+        example: '"好了我没进球——你的了（Your turn）。"'),
+    _GlossEntry(term: 'Play again / Again', en: 'Play again / Again', shortText: '表示再来一次。常用于练习或友好的氛围中。',
+        longText: '在非正式场合或练习中，如果说"play again"意味着接受重打（如犯规后对手同意不打自由球而是你来）。这在正式比赛中不适用，仅在朋友切磋时可能出现。',
+        example: '"你刚才那杆犯规了……不过算了 play again 你重新发一杆吧。"'),
+    _GlossEntry(term: 'Good shot!', en: 'Good shot!', shortText: '对精彩的击球表示赞赏的表达。',
+        longText: '无论来自对手还是队友，"Good shot!"是对漂亮击球的通用赞美。即使是一个巧妙的安全球，也可以用这句来肯定对方的水平。体育精神的重要组成部分。',
+        example: '"哇 Good shot! 那个翻袋角度太绝了！"'),
+    _GlossEntry(term: 'Miss', en: 'Miss', shortText: '打 miss —— 指选手有进球能力但故意不打进（某些规则下适用）。',
+        longText: '在正式比赛中如果出现"打 miss"（有能力进球却不打），对手可以要求亲自击打这一杆（take-out）。这是对故意消极比赛的处罚机制。',
+        example: '"你明明有角度打⑤号却偏去打库边？裁判你说这是不是一个 miss？"'),
+    _GlossEntry(term: 'My ball / Your ball', en: 'My ball / Your ball', shortText: '指明球权归属的口语文。',
+        longText: '"my ball"意思是球权在我（我应该打），"your ball"意思是球权在你。这种简洁表达方式在各种语言环境中都很常用。',
+        example: '"这颗我打过——my ball，等我打完这颗再说。"'),
+    _GlossEntry(term: 'Lag for break', en: 'Lag for Break', shortText: '开球权争夺——双方各自从底线击球看谁更靠近对面近端库边来决定谁先开球。',
+        longText: '在比赛开始前或需要决定开球顺序时，双方从各自的底线同时将母球击向对面的近库边再反弹回来，谁停得更靠近最近的库边谁就获得开球权（也可选择让对方先开而自己获得自由选择球组权）。这是一种公平的随机分配方式。',
+        example: '"来 lag 一下决定谁先开球——你先打，你的母球停得离边库更近，你赢了！"'),
+  ]),
+
+  // ===== 八、斯诺克术语 =====
+  _GlossSectionData(id: 'snooker_terms', entries: [
+    _GlossEntry(term: '斯诺克', en: 'Snooker', shortText: '一种使用 22 颗球（红球 15 颗 + 彩球 6 颗 + 母球 1 颗）的英式台球，以高分制为核心玩法。',
+        longText: '斯诺克起源于 19 世纪的英国印度驻军，使用 12 尺台（比中式八球的 9 尺台大一圈）。球员必须交替打入红色球和任意彩色球来累积分数，最高单次击球得分称为"满分杆"（Maximum Break = 147 分）。斯诺克强调走位精度和防守战术，被视为台球运动中的"国际象棋"。',
+        example: '"他打出了一杆 128 分的单杆——清掉了所有红球后连续打进全部彩球。"'),
+    _GlossEntry(term: '红球', en: 'Red Ball', shortText: '15 颗红色球中各得 1 分，是斯诺克的主要目标球。',
+        longText: '斯诺克开局时 15 颗红球排列成等边三角形。球员每次必须先击入一颗红球（得 1 分），然后瞄准任意彩色球击入得相应分值。每颗红球被击入袋后会重新放回置球点，直到全部红球清完才按分值顺序依次击打彩色球。',
+        example: '"现在台面还剩 3 颗红球——他每打进一颗红球就得回置到三角区顶部。"'),
+    _GlossEntry(term: '彩球（自由彩球）', en: 'Coloured Balls / Baulk Colours', shortText: '6 颗不同分值的球：黄 2 分、绿 3 分、棕 4 分、蓝 5 分、粉 6 分、黑 7 分。',
+        longText: '斯诺克的 6 颗彩球各自固定在球台上特定位置：黄球和绿球放在"B 点"附近（巴库尔区两条横线上的两个端点），棕球在中线巴库尔区的另一端，蓝球在台面正中央（置球点），粉球在顶袋口连线的中心点，黑球在最远端的底袋口前。彩球在被红球阶段击入后不重置，直到红球清空后才按从低到高分值（黄→绿→棕→蓝→粉→黑）顺序开灯击入。',
+        example: '"他想先拿黑球（7 分）——因为此时台面还有红球，他可以在每颗红球后进任意一个彩球。"'),
+    _GlossEntry(term: '巴库尔区', en: 'Baulk Area', shortText: '球台一端画有两条横线和一条弧线的区域，是彩球放置和安全球的重要区域。',
+        longText: '巴库尔区位于球台靠近开球区的一端，由两条平行于短库边的横线（相距约 29cm）和连接它们的一条弧线组成。黄球、绿球放在两侧横线上，棕球放中间。安全球时母球经常停在巴库尔区内以避免给对手留下明显机会。',
+        example: '"他把母球安全地藏在巴库尔区的弧线后面——对手解球难度很大。"'),
+    _GlossEntry(term: '做斯诺克', en: 'Make a Snooker', shortText: '把母球藏到障碍球后面，让对手无法直接看到并击打到己方的目标球。',
+        longText: '"做斯诺克"是斯诺克运动中最重要的防守战术。当你没有好的进攻线路时，主动将母球移动到一颗或多颗球的"背后"，使对手下一杆无法直接瞄准你的目标球。对手如未能合法接触到目标球就算犯规（miss），你可以选择自己打或让对方重打。高质量做斯诺克需要精准的力度控制和极细的走位计算。',
+        example: '"他轻轻推了一下母球，让它刚好贴在一颗黑球后面——这就是教科书级别做斯诺克！对手看着母球摇头叹气。"'),
+    _GlossEntry(term: '自由球', en: 'Free Ball', shortText: '当母球被围住无法直接瞄到活球时判给的权益，可指定任意球为活球继续打。',
+        longText: '当一方因对手犯规后母球被"斯诺克"（完全遮挡，任何方向都无法直接瞄到活球）时获得自由球。此时可以将台面上任何球当作活球（值 1 分）击打。如果打进的是非自由球，则计入该球分值 + 1 分（自由球的 1 分）。自由球只存在于斯诺克中，中式八球和九球中没有这个概念。',
+        example: '"母亲被 3 颗球围死了——他申请了自由球，把粉球当成活球打进得到 7 分（6+1）。"'),
+    _GlossEntry(term: '破百', en: 'Century Break', shortText: '单次连续击球累积得分达到 100 分或以上。',
+        longText: '在斯诺克中，单次击球过程中累计拿到 100 分及以上是一项里程碑式的成就。职业选手在比赛中偶尔能打出破百（Century），而顶级选手如奥沙利文更是多次完成过 147 满分杆。统计一名选手的单杆破百次数是衡量其竞技水平的重要指标之一。',
+        example: '"特鲁姆普今天状态火热，已经完成了本场的第二杆破百！",全场观众为他鼓掌。"'),
+    _GlossEntry(term: '满分杆', en: 'Maximum Break / 147', shortText: '单次击球中得到可能的最高分——先进 15 颗红球配 15 次黑球，再进全部彩球。',
+        longText: '满分杆 147 的计算方式：15 颗 × (1 分红球 + 7 分黑球) = 120 分，再加上剩余 6 颗彩球的固定分值合计 27 分（2+3+4+5+6+7）。总共 147 分。历史上极少数顶尖选手曾打出过包含"加罚球"的 155 分理论最高值（对手犯规后获得追加计分）。',
+        example: '"奥沙利文在 2011 年世锦赛打出了第 15 杆正式比赛满分杆 147——现场解说都激动到说不出话了。"'),
+    _GlossEntry(term: 'Kiss（击散球堆）', en: 'Kiss / Spread', shortText: '用母球或某颗球撞击密集排列的红球堆，使其散开的动作。',
+        longText: '斯诺克开局后的第一次红球击入通常伴随着"kiss"——即母球击中红球堆的中心区域，使得红球四散开来方便后续击打。一记好的 kiss 应该均匀分散红球，既不过于集中也不过于分散。有些选手专门练习如何用最轻的力度打出最理想的 kissoff。',
+        example: '"这一杆 kiss 太漂亮了——红球均匀散开，母球还能稳稳回到巴库尔区找黑球。"'),
+    _GlossEntry(term: '安全交换', en: 'Safety Exchange', shortText: '双方轮流打安全球、彼此都不冒险进攻的对峙局面。',
+        longText: '在高水平斯诺克比赛中经常出现安全球互相"斗牛"（safety battle/exchange）的情况。双方都有进攻机会但不愿意冒险，于是每一杆都是精心计算的安全球。这种拉锯战往往持续十几甚至二十多杆，考验的是谁先犯错（留下容易进攻的机会或被做斯诺克）。',
+        example: '"开场就是长达 12 杆的安全交换——两人都在小心翼翼地把母球藏在最难找到目标球的位置。"'),
+    _GlossEntry(term: '逆塞', en: 'Check English / Reverse Side', shortText: '与常规侧旋相反效果的非常规旋转——使母球碰库后的反弹角小于正常分离角甚至反向弯曲。',
+        longText: '普通右塞会让母球碰库后反弹角度增大（远离库边），但逆塞恰恰相反——它通过特定的组合击球使母球碰库后反弹得更靠近库边甚至产生弧线绕过。这是斯诺克中最难掌握的高级技巧，需要同时施加重度侧旋和特殊出杆角度，只有顶尖职业选手才能在实战中稳定运用。',
+        example: '"希金斯打了一个令人难以置信的逆塞——母球绕过了那颗关键红球，走了个完美的 S 形曲线到了下一颗星的位置。"'),
+    _GlossEntry(term: '半岸 / 岸球', en: 'Half Rail / Bank Shot', shortText: '利用库边反弹进球的翻袋击球，斯诺克中同样广泛使用。',
+        longText: '斯诺克翻袋进球的难度远高于中式八球，因为球台更大、袋口相对更小且球更多。一库翻是最基本形式，双库翻和三库翻则需要精确的角度计算和极强的力度控制。很多精彩绝杀都来自高难度的翻袋进球。',
+        example: '"最后黑球被红球挡住了直线路径——他用了一杆不可思议的双库翻袋把黑球送进了底袋！全场沸腾。"'),
+    _GlossEntry(term: '红球彩球相间', en: 'Red-Colour Sequence', shortText: '斯诺克的标准击球顺序：红球→任意彩球→红球→任意彩球…直到清光所有红球。',
+        longText: '斯诺克的核心规则是交替击打红球和彩球。每次打进红球后（1 分），可以任选一颗彩球（2-7 分）击入得分。彩球被打入后会暂时取出，等红球全部打完后才按分值从低到高（黄→绿→棕→蓝→粉→黑）的顺序永久移除。这个红球彩球相间的节奏构成了斯诺克独特的战术体系。',
+        example: '"目前他已经连打了 3 个红球配 3 个黑球——每个红球后都精准选择了分值最高的黑球作为加分球。"'),
+    _GlossEntry(term: '开球 / 击散', en: 'Break Shot / Kissoff', shortText: '斯诺克的开球——母球击打红球堆使其散开并开始第一轮击打。',
+        longText: '斯诺克的开球与普通花式台球的开球有所不同。由于红球堆更紧凑（15 颗），开球时需要更大的力量和更精确的角度来击散球堆并尽可能打入一颗球。高质量的开球不仅可以取得初始分数优势，更重要的是能让红球均匀散开便于后续击打。',
+        example: '"希金斯的开球如同一记重炮——红球炸裂开来散满台面，母球稳稳停在巴库尔区找黑球的好位置。"'),
+  ]),
+
+  // ===== 九、九球术语 =====
+  _GlossSectionData(id: 'nine_ball_terms', entries: [
+    _GlossEntry(term: '九球', en: 'Nine-ball / 9-Ball', shortText: '使用 9 颗目标球（1–9 号）加 1 颗母球共 10 颗球的美式台球玩法，按号码顺序从小到大依次击打。',
+        longText: '九球是世界上最流行的花式台球玩法之一，以快节奏和高观赏性著称。核心规则：必须始终先击打台面上号码最小的球；但允许以任何方式进球（包括翻袋、跳球、借库球），只要最小号球首先被碰到。这意味着即使 9 号球摆在了最容易进的位置，如果你还没打 1–8 号之前碰了 9 号也算犯规。九球比赛常采用"黄金九球"（Golden Break）赛制——开球若合法进球则可续打，有机会直接清台获胜。',
+        example: '"九球比赛最刺激的就是开球可能直接清台——如果开球时有人打进球就能继续，运气好的一杆搞定整局。"'),
+    _GlossEntry(term: '螺旋球堆 / 菱形排列', en: 'Diamond Rack', shortText: '九球特有的 1–9 号排列方式：1 号在顶点，9 号在正中央，其余随机分布。',
+        longText: '与中式八球的三角架（金字塔形）不同，九球使用菱形排列。1 号球（最小的球）必须放在菱形顶端（最靠近置球点的那一颗），9 号球必须放在菱形的几何正中央（第五排中间），其余 2–8 号球随机放置在剩余位置。这种排列确保每次开球都是随机的，增加了开球的不确定性。',
+        example: '"开球前检查——1 号在头、9 号在正中、其他随便排……好的，摆放完毕开始击球。"'),
+    _GlossEntry(term: '黄金九球', en: 'Golden Break / On the Break', shortText: '开球方合法进球后可以继续击球，有机会一杆清台获胜的特殊待遇。',
+        longText: '九球的独特魅力在于开球环节：如果开球时有球合法入袋，开球方不仅可以继续击球，而且没有任何限制地按照规则往下打——这给了他们直接"清台"（break and run）的可能性。因此职业选手会花费大量时间练习开球的力量、落点和散布效果，争取在开球阶段就取得巨大优势甚至直接结束比赛。',
+        example: '"他开球打进了一颗而且球堆散得很好——接下来连打了 7 杆把剩下的全部清干净！完美开局一条龙。"'),
+    _GlossEntry(term: '追球 / 连打', en: 'Run', shortText: '连续打进多颗球的击球过程。',
+        longText: '"Run" 在九球语境中指连续打进多颗球的过程。一杆高质量的 run 通常需要出色的走位技术和耐心。通俗讲就是"一路连打不掉手"的意思——和中式八球的连打类似，但九球因为从小到大打所以路线相对更容易规划。',
+        example: '"罗尼·克拉克打了一个漂亮的 eight-ball run——从 ① 到 ⑧ 全部清理干净只差最后的 ⑨。"'),
+    _GlossEntry(term: '跳球', en: 'Jump Shot / Jump Ball', shortText: '在九球中使用频率极高的技术——通过敲击母球底部使其弹起越过障碍球。',
+        longText: '由于九球规则要求"最先碰到台面上号码最小的球"，当最小号球被挡住时，最常见的解决方案就是使用跳球越过障碍物。这在九球中是一个合法且常用手段，不像在某些台球玩法中被视为炫技而非实用技能。现代九球选手普遍拥有精湛的跳球技术。',
+        example: '"①号被③号和⑦号夹在中间根本打不到——他轻巧一跳，母球越过了障碍物准确碰到了①号。"'),
+    _GlossEntry(term: '留球 / 摆球', en: 'Spotting / Spotting Balls', shortText: '某些赛制下意外落入袋中的球会被取出重新放回台面特定位置。',
+        longText: '在一些正式九球赛事中，如果某个球在不应被打入的时候落入袋中（比如开球时 9 号意外落入、或者不该打到的球提前进了），裁判会将该球取出"放回"（spot）到台面上。通常放回到该球应该在的位置（如 9 号放到菱形中央）、如果没有空间则放回置球点附近。这不是标准的中式八球概念。',
+        example: '"哎呀 9 号开球就进来了——按规则不算赢也不算输，裁判把它拿出来放回菱形中央，其他人接着打。"'),
+    _GlossEntry(term: '清台一条龙', en: 'Break and Run', shortText: '开球后进球继续击球并一路清干净所有球，一局终结对手。',
+        longText: '"Break and run"是九球中最令人印象深刻的表现之一。你需要：1）开球时合法进球（取得继续权）；2）按 1→2→3→...→9 的顺序逐一打进；3）期间不走位失误、不进错球、不洗袋。这是一套行云流水的表演，也是职业选手追求的理想击球流程。',
+        example: '"约翰·艾伯斯开场做了一个完整的 break and run——开球打进一颗然后一口气把剩下的 8 颗全部清理完毕！"'),
+    _GlossEntry(term: '冲球 / 开球冲击', en: 'Break / Power Break', shortText: '第一杆大力击打球堆的击球行为，在九球中是决定胜负的关键环节。',
+        longText: '九球的冲球不仅是为了打开球堆，还要尽可能做到：1）将至少一颗球合法打入袋中；2）合理散布球堆不至于太集中或太分散；3）控制好母球走位为下一杆做准备。职业选手经过数小时甚至数天的专项冲球训练才能达到最高水准。一记好冲球可以直接改变整场比赛的走势。',
+        example: '"他的冲球又快又准——三颗球进袋了！球堆散得很均匀，母球停在很靠前的位置。对手只能干瞪眼。"'),
+    _GlossEntry(term: '翻袋 / 银行球', en: 'Bank Shot', shortText: '目标球利用库边反弹后再进入袋口的方式。',
+        longText: '九球中翻袋进球十分常见——由于九球只需要按最小号顺序打且不需要指袋，选手可以自由利用任何线路包括翻袋来解决难题。尤其在高水平的 9-ball 比赛中，几乎每一局都会出现至少一次翻袋进球。翻袋需要准确计算反射角度（入射角等于反射角）以及考虑旋转带来的偏差。',
+        example: '"这颗球不能直打——他用了三库翻——母球先撞长库再撞短库最后撞到④号然后④号滚进底袋。太漂亮了！"'),
+    _GlossEntry(term: '接力打法 / 轮转打法', en: 'Rotation / Call-and-Shot', shortText: '每击入一球后必须报下一个要打的目标球和袋口的打法（部分变体规则使用）。',
+        longText: '标准九球不要求报袋口——任何袋进都算。但有些业余或地方规则会加入"指球定袋"要求。此外，九球有一种被称为"rotation"的玩法变体：每个进球都得 1 分（不管打进几号球），9 颗全打完总分最高者胜。这与标准九球"最小号优先直到进 9 号获胜"的规则完全不同。注意不要将 rotation（计分模式）和 standard 9-ball（顺序淘汰模式）混淆。',
+        example: '"我们这里玩的是 1+1+1... 打到 9 分算赢——这叫 rotation，不是正规九球。正规九球是先打 1 再打 2 一直到最后打 9 就赢了。"'),
+    _GlossEntry(term: '翻袋解球', en: 'Bank Kick / Bank Relief', shortText: '通过翻袋的方式解到目标球，解决安全球造成的困局。',
+        longText: '面对对手布置的精妙安全球，九球选手同样可以使用翻袋来解决困境。虽然九球节奏更快且更注重进攻，但高水平的选手也会在关键时刻使用翻袋解球来化解困局或创造反击机会。',
+        example: '"他把母球先翻了一库再碰到③号——漂亮的翻袋解球，差点就以为这球没法打了。"'),
+  ]),
+];
+
+// ---------------------------------------------------------------------------
+// Section renderer — shows all entries for a given section ID
+// ---------------------------------------------------------------------------
+class _GlossSection extends StatelessWidget {
+  const _GlossSection(this.id);
+  final String id;
+
+  _GlossSectionData _find(String id) => _allSections.firstWhere((s) => s.id == id);
+
+  @override
+  Widget build(BuildContext context) {
+    final section = _find(id);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: section.entries.asMap().entries.map((entry) {
+        final idx = entry.key + 1;
+        final e = entry.value;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _InfoCard(
+            children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(color: const Color(0xFF66BB6A), shape: BoxShape.circle),
+                  alignment: Alignment.center,
+                  child: Text('$idx', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(e.term, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                    if (e.en.isNotEmpty)
+                      Text(e.en, style: TextStyle(color: const Color(0xFF81C784).withValues(alpha: 0.7), fontSize: 12, fontStyle: FontStyle.italic)),
+                  ]),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              _P(e.shortText),
+              if (e.longText.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                _P(e.longText),
+              ],
+              const SizedBox(height: 6),
+              _Tip(e.example),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
 }
